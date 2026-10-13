@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### 2026-10-13: JEI tooltips on GregTech recipe pages
+- Fixed: hovering items on GregTech machine recipe pages in JEI showed no tooltip. JEI 15.56 changed internals that
+  GregTech 7.5.3 and its UI library patch. JEI is now pinned to 15.20.0.134, the newest build GregTech works with.
+- The addon has a dev game client (`./gradlew runClient`, with JEI) for checking UI issues; a test keeps the addon's
+  dev mods and the pack's mods the same versions.
+
 ### 2026-10-13: Prototype phase 5 (test world)
 - `design/prototype.yaml`: the test world; starter kits sized by the simulator, given on first join and with
   `/utechkit`; `/utechkit check`.

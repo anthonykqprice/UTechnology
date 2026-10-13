@@ -97,5 +97,22 @@ class DesignTests(unittest.TestCase):
         self.assertEqual(d.recipe_id(r), "utechnology:coil_winder/stator_coil_mv")
 
 
+class PackTests(unittest.TestCase):
+    def test_addon_dev_mods_match_the_pack(self):
+        """The addon's GameTests and dev client run the exact mod files the pack ships (gradle.properties)."""
+        root = pathlib.Path(__file__).resolve().parent.parent
+        props = dict(l.split("=", 1) for l in (root / "addon/gradle.properties").read_text().splitlines()
+                     if "=" in l and not l.startswith("#"))
+        for prop, toml in [("kubejs_modrinth", "kubejs"), ("rhino_modrinth", "rhino"),
+                           ("architectury_modrinth", "architectury-api"), ("jei_modrinth", "jei")]:
+            text = (root / f"pack/mods/{toml}.pw.toml").read_text()
+            self.assertIn(f'version = "{props[prop].strip()}"', text, f"{prop} differs from pack/mods/{toml}.pw.toml")
+
+    def test_jei_is_pinned(self):
+        """GTM 7.5.3's JEI integration breaks on newer JEI (docs/mods.md); packwiz update must not move it."""
+        root = pathlib.Path(__file__).resolve().parent.parent
+        self.assertIn("pin = true", (root / "pack/mods/jei.pw.toml").read_text())
+
+
 if __name__ == "__main__":
     unittest.main()

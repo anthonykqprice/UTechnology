@@ -12,7 +12,7 @@ packwiz records: client-only mods are left out of a server export.
 | Architectury API | `architectury-9.2.14-forge.jar` | both | Required by KubeJS. Same version GTM 7.5.3 builds against (GTM's `gradle/forge.versions.toml` at tag v7.5.3-1.20.1). | — |
 | Applied Energistics 2 | `appliedenergistics2-forge-15.4.11.jar` | both | The pack's logistics and autocrafting tool, from LV (CLAUDE.md). | GuideME |
 | GuideME | `guideme-20.1.15.jar` | both | AE2's in-game guide book library. | — |
-| Just Enough Items (JEI) | `jei-1.20.1-forge-15.56.0.205.jar` | both | The one recipe viewer. Chosen over EMI because GTM and AE2 both ship mature JEI integrations, including AE2's pattern encoding from JEI. Pinned to the newest *release*; the newer 15.62 line is a two-week-old beta that also needs MezzConfig. | — |
+| Just Enough Items (JEI) | `jei-1.20.1-forge-15.20.0.134.jar` | both | The one recipe viewer. Chosen over EMI because GTM and AE2 both ship mature JEI integrations, including AE2's pattern encoding from JEI. **Pinned to 15.20.0.134** (packwiz `pin`), the newest build of the 15.20 line GTM 7.5.3 is built against (15.20.0.115). Newer JEI (15.21 and up, including the 15.49 and 15.56 releases) changed the internals GTM and LDLib patch: GTM's fluid-tooltip patch no longer applies and item tooltips on GregTech recipe pages disappear (found in play-testing, reproduced with `runClient`). Only move JEI after checking a GregTech recipe page in `runClient`. | — |
 | Jade | `Jade-1.20.1-Forge-11.13.3.jar` | both | Shows machine status, recipe progress and parallels when looking at a block. GTM has built-in Jade support. | — |
 | ModernFix | `modernfix-forge-5.27.88+mc1.20.1.jar` | both | Performance: faster launch, less memory. Standard in GT packs. | — |
 | FerriteCore | `ferritecore-6.0.1-forge.jar` | both | Performance: memory use of block states and models. | — |
@@ -27,7 +27,7 @@ packwiz records: client-only mods are left out of a server export.
   its own overlapping patches.
 
 ## Considered and left out
-- **JEI 15.62 beta + MezzConfig**: newest JEI builds, but beta; the release above is better tested.
+- **JEI 15.21 and newer** (15.49 and 15.56 releases, 15.62 beta): break GTM 7.5.3's JEI integration (see above). Revisit with GTM 8.
 - **ImmediatelyFast**: its Modrinth versions are labelled inconsistently (packwiz picked a build named
   for 1.20.2), and it is a client-only renderer that can't be tested in CI. Revisit with a client test.
 - **FTB Teams / FTB Quests**: research was superseded by per-machine upgrades, and quests are out of

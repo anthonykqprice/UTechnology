@@ -7,3 +7,4 @@ run-server/
 .idea/
 run-data/
 src/generated/resources/.cache/
+run-client/

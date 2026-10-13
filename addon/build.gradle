@@ -42,6 +42,13 @@ legacyForge {
             systemProperty 'forge.logging.console.level', 'info'
             systemProperty 'forge.enabledGameTestNamespaces', project.mod_id
         }
+        // A client for looking at UI issues (JEI pages, machine screens). The pack's real client is Prism + the .mrpack.
+        client {
+            client()
+            gameDirectory = project.file('run-client')
+            // -PquickPlay=<world> opens that world from run-client/saves straight away
+            if (project.hasProperty('quickPlay')) programArguments.addAll('--quickPlaySingleplayer', project.quickPlay)
+        }
         server {
             server()
             gameDirectory = project.file('run-server')
@@ -80,6 +87,7 @@ dependencies {
     modRuntimeOnly("maven.modrinth:kubejs:${kubejs_modrinth}") { transitive = false }
     modRuntimeOnly("maven.modrinth:rhino:${rhino_modrinth}") { transitive = false }
     modRuntimeOnly("maven.modrinth:architectury-api:${architectury_modrinth}") { transitive = false }
+    modRuntimeOnly("maven.modrinth:jei:${jei_modrinth}") { transitive = false }
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
     testImplementation 'com.google.code.gson:gson:2.10.1' // same version Minecraft 1.20.1 ships

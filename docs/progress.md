@@ -266,3 +266,10 @@ frame voltage; only inputs and output space limit parallels. Recorded as decisio
   can't hang on shutdown.
 - **`docs/progression.md`**: the mod/tier table CLAUDE.md asks for. AE2 isn't gated to LV by recipes yet
   (the prototype hands it out); that's milestone 1 work.
+
+### After the PR: play-testing fixes
+- **No tooltips on GregTech recipe pages in JEI** (reported from play-testing). Cause: JEI 15.56 changed internals that
+  GregTech 7.5.3 and LDLib (its UI library) patch; GregTech is built against JEI 15.20. Reproduced in a real game
+  client on the build VM (`./gradlew runClient` on a virtual display): with 15.56 GregTech's fluid-tooltip patch fails;
+  with 15.20.0.134 the bender page shows item tooltips. JEI is pinned to 15.20.0.134 (docs/mods.md), and a test keeps
+  the addon's dev mods equal to the pack's.
