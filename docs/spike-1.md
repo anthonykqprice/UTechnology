@@ -16,12 +16,12 @@ Java API, and record what we learned. Nothing here is production code.
 Commands (from `spike/`, with `JAVA_HOME` set to a JDK 17):
 
 ```
-./gradlew --max-workers=1 runGameTestServer      # 25 required + 4 optional GameTests
+./gradlew --max-workers=1 runGameTestServer      # 21 required + 4 optional GameTests
 tools/server_session.sh tools/reload_run1.txt run1.log   # dedicated server, scripted console
 tools/server_session.sh tools/reload_run2.txt run2.log   # restart and check
 ```
 
-Result of the last run: **all 25 required GameTests pass.** 2 of the 4 optional (observation) tests fail, as
+Result of the last run: **all 21 required GameTests pass** (vanilla logs this as "All 25 required tests passed", counting the optional ones too). 2 of the 4 optional (observation) tests fail, as
 expected; see Check 1. The save/reload run on a dedicated server passes.
 
 Environment notes:
