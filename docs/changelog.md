@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+### 2026-10-13: Prototype phase 2 (data pipeline and validator)
+- `design/ids.yaml`: design names mapped to game IDs.
+- `tools/generate.py`: writes the pack's KubeJS recipe scripts (changed MV/HV motors, stator coils,
+  bearings, all builds; removes the replaced stock recipes and the disabled Large multiblocks), the
+  data pack JSON the addon reads (frames, modules, multiblocks), bonus-math test cases computed by the
+  simulator core, and GameTest expectations.
+- `tools/validate.py`: checks items, IDs, recipe conflicts and bus sizes; writes
+  `docs/validation-report.md`. GameTests check the live game: IDs exist, stock recipes still match
+  GTM 7.5.3, replaced recipes are gone, our recipes loaded as designed and don't conflict.
+- `pack/config/gtceu.yaml`: GTM's hard recipe options on (except wood and dye nerfs).
+- Design: conveyors' stock circuit 1 recorded; build recipes are assembler recipes one tier below
+  (decision build-recipes); retrofit kits use circuit 7 (kit-circuit); MV/HV coil winder and HV
+  bearing press builds added.
+
+### 2026-10-13: Prototype phase 1 (repository and pack skeleton)
+- `pack/`: packwiz pack, Forge 1.20.1 (47.4.27), GTM 7.5.3, KubeJS, AE2, JEI, Jade and performance mods
+  (`docs/mods.md`).
+- `addon/`: new GTM addon project (`utechnology`) with a GameTest server that loads KubeJS and the pack's
+  scripts.
+- CI: simulator tests, design checks, addon build and GameTests, pack export with the addon jar.
+- Design: efficiency coil saves 25% energy per craft; fluid hatches on every multiblock; steel retrofit kit.
+- `spike/` removed (kept in git history).
+
 ### 2026-10-13: Design files and prototype plan
 - `CLAUDE.md`: per-machine upgrades (frames, segments, modules, retrofit kits) replace the research
   tree; AE2 and recipe-conflict rules; lessons from spike 1; workflow without code review.

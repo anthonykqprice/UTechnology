@@ -102,7 +102,8 @@ framework:
     efficiency_coil:
       unlocked_at: MV
       effect: 25% less energy per craft; recipes take 25% longer.
-      energy: 0.6        # EU/t multiplier; with duration 1.25 each craft uses 0.75 of the energy
+      energy: 0.6        # EU/t multiplier; with duration 1.25 each craft uses 0.75 of the energy.
+                         # In game GTM rounds the EU/t (ModifierFunction); the simulator doesn't.
       duration: 1.25
     batch_bus:
       unlocked_at: HV
@@ -117,6 +118,7 @@ framework:
 # ---------------------------------------------------------------------------
 machines:
   component_assembler:
+    tier: LV               # build tier of its core and controller
     name: Component Assembler
     runs: assembler recipes marked component (motors, pistons, conveyors, robot arms)
     fluids: in             # conveyor recipes use liquid rubber
@@ -131,6 +133,7 @@ machines:
       in: { assembler_lv: 1, robot_arm_lv: 2, conveyor_lv: 2, circuit_lv: 3 }
 
   assembly_hall:
+    tier: LV               # build tier of its core and controller
     name: Assembly Hall
     runs: all other assembler recipes (cables, hulls, casings, machines)
     fluids: in             # cables use liquid rubber
@@ -142,9 +145,10 @@ machines:
       in: { assembler_lv: 1, robot_arm_lv: 2, piston_lv: 2, circuit_lv: 3 }
 
   wire_drawing_line:
+    tier: LV               # build tier of its core and controller
     name: Wire Drawing Line
     runs: wiremill recipes
-    fluids: none
+    fluids: none           # its recipes use no fluids; it still accepts fluid hatches (decision fluid-hatches-everywhere)
     core:
       id: drawing_die_unit
       name: Drawing Die Unit
@@ -153,9 +157,10 @@ machines:
       in: { wiremill_lv: 1, motor_lv: 2, conveyor_lv: 1, circuit_lv: 3 }
 
   turning_line:
+    tier: LV               # build tier of its core and controller
     name: Turning Line
     runs: lathe recipes
-    fluids: none
+    fluids: none           # its recipes use no fluids; it still accepts fluid hatches (decision fluid-hatches-everywhere)
     core:
       id: spindle_unit
       name: Spindle Unit
@@ -164,29 +169,48 @@ machines:
       in: { lathe_lv: 1, motor_lv: 2, piston_lv: 1, circuit_lv: 3 }
 
 # ---------------------------------------------------------------------------
+# How every build in the design is made (machines, cores, controllers, kits, modules;
+# here and in the slice files). Stock casings keep their GTM recipes.
+# ---------------------------------------------------------------------------
+build_rule:
+  machine: assembler
+  voltage: one tier below the build's tier (LV builds at ULV 7 EU/t, MV at LV 30, HV at MV 120)
+  eut: { LV: 7, MV: 30, HV: 120 }
+  duration: 10          # seconds, every build for now
+
+# ---------------------------------------------------------------------------
 # Build recipes for the framework (casings, retrofit kits, modules)
 # Controllers and cores are listed with each machine above.
 # ---------------------------------------------------------------------------
 builds:
   - id: casing_steel
     builds: casing
-    status: stock (check exact recipe against GTM 7.5.3)
+    status: stock (GTM 7.5.3 MachineRecipeLoader; checked by a GameTest)
     frame: steel
     in: { plate_steel: 6, frame_steel: 1 }
+    circuit: 6
+    eut: 16
+    duration: 2.5
     out: 2
 
   - id: casing_aluminium
     builds: casing
-    status: stock (check exact recipe against GTM 7.5.3)
+    status: stock (GTM 7.5.3 MachineRecipeLoader; checked by a GameTest)
     frame: aluminium
     in: { plate_aluminium: 6, frame_aluminium: 1 }
+    circuit: 6
+    eut: 16
+    duration: 2.5
     out: 2
 
   - id: casing_stainless_steel
     builds: casing
-    status: stock (check exact recipe against GTM 7.5.3)
+    status: stock (GTM 7.5.3 MachineRecipeLoader; checked by a GameTest)
     frame: stainless_steel
     in: { plate_stainless_steel: 6, frame_stainless_steel: 1 }
+    circuit: 6
+    eut: 16
+    duration: 2.5
     out: 2
 
   - id: retrofit_kit_steel
@@ -194,18 +218,21 @@ builds:
     frame: steel
     note: Converts 8 casings to steel (used to downgrade). Costs the same as 8 new casings.
     in: { plate_steel: 24, frame_steel: 4 }
+    circuit: 7              # keeps it apart from the casing recipe (circuit 6), see decision kit-circuit
 
   - id: retrofit_kit_aluminium
     builds: retrofit_kit
     frame: aluminium
     note: Converts 8 casings to aluminium. Costs the same as 8 new casings.
     in: { plate_aluminium: 24, frame_aluminium: 4 }
+    circuit: 7              # keeps it apart from the casing recipe (circuit 6), see decision kit-circuit
 
   - id: retrofit_kit_stainless_steel
     builds: retrofit_kit
     frame: stainless_steel
     note: Converts 8 casings to stainless steel. Costs the same as 8 new casings.
     in: { plate_stainless_steel: 24, frame_stainless_steel: 4 }
+    circuit: 7              # keeps it apart from the casing recipe (circuit 6), see decision kit-circuit
 
   - id: module_specialization_lock
     builds: specialization_lock
@@ -251,6 +278,22 @@ decisions:
     why: >-
       The batch bus consumes lubricant, so machines whose recipes use no fluids
       (Wire Drawing Line, Turning Line) still need a way to take it in.
+  - id: build-recipes
+    decided: 2026-10-13
+    decision: >-
+      Builds (machines, cores, controllers, retrofit kits, modules) are assembler
+      recipes one voltage tier below the build's tier, 10 s each (build_rule above).
+    why: >-
+      Follows the slice's bootstrap rule, so a tier-N upgrade can be made before the
+      player has tier-N power, and assembler recipes work with AE2 autocrafting.
+  - id: kit-circuit
+    decided: 2026-10-13
+    decision: Retrofit kit recipes use programmed circuit 7.
+    why: >-
+      A kit takes the same plates and frame box as the stock casing recipe (which uses
+      circuit 6), only more of them. Without a circuit, an input bus loaded for casings
+      could make kits instead. Different circuits keep the two recipes apart, as
+      CLAUDE.md's recipe-conflict rule requires.
   - id: steel-retrofit-kit
     decided: 2026-10-13
     decision: Add a steel retrofit kit (24 steel plates, 4 steel frames) for downgrading to steel.

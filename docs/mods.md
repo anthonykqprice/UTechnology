@@ -6,14 +6,13 @@ packwiz records: client-only mods are left out of a server export.
 
 | Mod | Version (file) | Side | Why it's here | Required deps |
 |---|---|---|---|---|
-| GregTech CEu Modern | `gtceu-1.20.1-7.5.3.jar` | both | The core of the pack. 7.5.3 is the newest 1.20.1 release (see docs/spike-1.md). | LDLib, Configuration (both embedded in this jar) |
+| GregTech CEu Modern | `gtceu-1.20.1-7.5.3.jar` | both | The core of the pack. 7.5.3 is the newest 1.20.1 release (see docs/spike-1.md). | LDLib, Configuration, Registrate (all embedded in this jar) |
 | KubeJS | `kubejs-forge-2001.6.5-build.26.jar` | both | Recipe changes generated from design/. GTM's KubeJS integration is built into GTM and activates when KubeJS is present. | Rhino, Architectury API |
 | Rhino | `rhino-forge-2001.2.3-build.10.jar` | both | KubeJS's script engine. | — |
-| Architectury API | `architectury-9.2.14-forge.jar` | both | Required by KubeJS. Same version GTM 7.5.3 builds against. | — |
+| Architectury API | `architectury-9.2.14-forge.jar` | both | Required by KubeJS. Same version GTM 7.5.3 builds against (GTM's `gradle/forge.versions.toml` at tag v7.5.3-1.20.1). | — |
 | Applied Energistics 2 | `appliedenergistics2-forge-15.4.11.jar` | both | The pack's logistics and autocrafting tool, from LV (CLAUDE.md). | GuideME |
 | GuideME | `guideme-20.1.15.jar` | both | AE2's in-game guide book library. | — |
-| Just Enough Items (JEI) | `jei-1.20.1-forge-15.62.0.219.jar` | both | The one recipe viewer. Chosen over EMI because GTM and AE2 both ship mature JEI integrations, including AE2's pattern encoding from JEI. | MezzConfig |
-| MezzConfig | `mezz_config-1.20.1-forge-0.6.8.jar` | both | JEI's config library. | — |
+| Just Enough Items (JEI) | `jei-1.20.1-forge-15.56.0.205.jar` | both | The one recipe viewer. Chosen over EMI because GTM and AE2 both ship mature JEI integrations, including AE2's pattern encoding from JEI. Pinned to the newest *release*; the newer 15.62 line is a two-week-old beta that also needs MezzConfig. | — |
 | Jade | `Jade-1.20.1-Forge-11.13.3.jar` | both | Shows machine status, recipe progress and parallels when looking at a block. GTM has built-in Jade support. | — |
 | ModernFix | `modernfix-forge-5.27.88+mc1.20.1.jar` | both | Performance: faster launch, less memory. Standard in GT packs. | — |
 | FerriteCore | `ferritecore-6.0.1-forge.jar` | both | Performance: memory use of block states and models. | — |
@@ -28,6 +27,7 @@ packwiz records: client-only mods are left out of a server export.
   its own overlapping patches.
 
 ## Considered and left out
+- **JEI 15.62 beta + MezzConfig**: newest JEI builds, but beta; the release above is better tested.
 - **ImmediatelyFast**: its Modrinth versions are labelled inconsistently (packwiz picked a build named
   for 1.20.2), and it is a client-only renderer that can't be tested in CI. Revisit with a client test.
 - **FTB Teams / FTB Quests**: research was superseded by per-machine upgrades, and quests are out of

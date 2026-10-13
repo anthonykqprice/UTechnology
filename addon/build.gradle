@@ -83,6 +83,7 @@ tasks.named('test', Test) { useJUnitPlatform() }
         into project.file("${runDir}/kubejs")
         preserve { include 'config/**', 'exported/**', 'README.txt' } // written by KubeJS itself
     }
+    // a Copy, not a Sync: the run folder also holds config files the mods write themselves
     def cfg = tasks.register("copyPackConfig${name}", Copy) {
         from rootProject.file('../pack/config')
         into project.file("${runDir}/config")

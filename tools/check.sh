@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
-# Everything CI checks about the design data. Run from the repository root.
+# Everything CI checks about the design data. Run from anywhere.
+# Generated files must match what the generators produce from design/ (files are regenerated in place,
+# so after a failure the working tree holds the fresh versions to commit).
 set -euo pipefail
 cd "$(dirname "$0")/.."
+stale=0
+before=$(mktemp -d); trap 'rm -rf "$before"' EXIT
+cp design/sim/data.json design/sim/index.html "$before/"
 python3 design/sim/build.py >/dev/null
-git diff --exit-code -- design/sim || { echo "design/sim/data.json or index.html is stale: run python3 design/sim/build.py"; exit 1; }
-if [ -f tools/generate.py ]; then
-  python3 tools/generate.py
-  git diff --exit-code -- pack addon/src || { echo "Generated files are stale: run python3 tools/generate.py"; exit 1; }
-  # untracked generated files count as stale too
-  test -z "$(git status --porcelain --untracked-files=all -- pack addon/src)" || { git status --short -- pack addon/src; echo "Generated files are not committed"; exit 1; }
-fi
-if [ -f tools/validate.py ]; then python3 tools/validate.py; fi
+for f in data.json index.html; do
+  cmp -s "$before/$f" "design/sim/$f" || { echo "stale: design/sim/$f (run python3 design/sim/build.py)"; stale=1; }
+done
+python3 tools/generate.py --check || stale=1
+python3 tools/validate.py --check || stale=1
+[ "$stale" = 0 ] || { echo "design checks failed"; exit 1; }
+python3 -m unittest discover -s tools -p 'test_*.py' -q
 echo "design checks passed"

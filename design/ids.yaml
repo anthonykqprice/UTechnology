@@ -1,0 +1,119 @@
+# Design names -> Minecraft IDs.
+# The generator uses this to write KubeJS scripts and data pack JSON; a GameTest checks that every ID
+# exists in the running game (item, block, fluid or non-empty tag). IDs under utechnology: are this
+# pack's own and must never change once released.
+#
+# Forms: "ns:path" item or block, "#ns:path" item tag, "fluid:ns:path" fluid.
+
+items:
+  # supplied raw materials
+  ingot_copper:            minecraft:copper_ingot
+  ingot_tin:               gtceu:tin_ingot
+  ingot_gold:              minecraft:gold_ingot
+  ingot_silver:            gtceu:silver_ingot
+  ingot_cupronickel:       gtceu:cupronickel_ingot
+  ingot_electrum:          gtceu:electrum_ingot
+  ingot_steel:             gtceu:steel_ingot
+  ingot_aluminium:         gtceu:aluminium_ingot
+  ingot_stainless_steel:   gtceu:stainless_steel_ingot
+
+  wire_copper_single:      gtceu:copper_single_wire
+  wire_tin_single:         gtceu:tin_single_wire
+  wire_gold_single:        gtceu:gold_single_wire
+  wire_silver_double:      gtceu:silver_double_wire
+  wire_cupronickel_double: gtceu:cupronickel_double_wire
+  wire_electrum_double:    gtceu:electrum_double_wire
+  cable_tin_single:        gtceu:tin_single_cable
+  cable_copper_single:     gtceu:copper_single_cable
+  cable_gold_single:       gtceu:gold_single_cable
+  cable_silver_double:     gtceu:silver_double_cable
+  rod_steel:               gtceu:steel_rod
+  rod_aluminium:           gtceu:aluminium_rod
+  rod_stainless_steel:     gtceu:stainless_steel_rod
+  rod_magnetic_steel:      gtceu:magnetic_steel_rod
+
+  dust_small_steel:           gtceu:small_steel_dust
+  dust_small_aluminium:       gtceu:small_aluminium_dust
+  dust_small_stainless_steel: gtceu:small_stainless_steel_dust
+
+  plate_steel:             gtceu:steel_plate
+  plate_aluminium:         gtceu:aluminium_plate
+  plate_stainless_steel:   gtceu:stainless_steel_plate
+  gear_small_steel:        gtceu:small_steel_gear
+  gear_small_aluminium:    gtceu:small_aluminium_gear
+  gear_small_stainless:    gtceu:small_stainless_steel_gear
+  ring_stainless_steel:    gtceu:stainless_steel_ring
+  circuit_lv:              "#gtceu:circuits/lv"
+  circuit_mv:              "#gtceu:circuits/mv"
+  circuit_hv:              "#gtceu:circuits/hv"
+  frame_steel:             gtceu:steel_frame
+  frame_aluminium:         gtceu:aluminium_frame
+  frame_stainless_steel:   gtceu:stainless_steel_frame
+  hull_lv:                 gtceu:lv_machine_hull
+  hull_mv:                 gtceu:mv_machine_hull
+  hull_hv:                 gtceu:hv_machine_hull
+  assembler_lv:            gtceu:lv_assembler
+  wiremill_lv:             gtceu:lv_wiremill
+  lathe_lv:                gtceu:lv_lathe
+
+  rubber_fluid:            fluid:gtceu:rubber
+  lubricant:               fluid:gtceu:lubricant
+
+  stator_coil_mv:          utechnology:mv_stator_coil
+  stator_coil_hv:          utechnology:hv_stator_coil
+  bearing_hv:              utechnology:precision_bearing
+
+  motor_lv:                gtceu:lv_electric_motor
+  motor_mv:                gtceu:mv_electric_motor
+  motor_hv:                gtceu:hv_electric_motor
+  piston_lv:               gtceu:lv_electric_piston
+  piston_mv:               gtceu:mv_electric_piston
+  piston_hv:               gtceu:hv_electric_piston
+  conveyor_lv:             gtceu:lv_conveyor_module
+  conveyor_mv:             gtceu:mv_conveyor_module
+  conveyor_hv:             gtceu:hv_conveyor_module
+  robot_arm_lv:            gtceu:lv_robot_arm
+  robot_arm_mv:            gtceu:mv_robot_arm
+  robot_arm_hv:            gtceu:hv_robot_arm
+
+  # framework (multiblocks.yaml): casings are stock, the rest is this pack's
+  casing_steel:            gtceu:solid_machine_casing
+  casing_aluminium:        gtceu:frostproof_machine_casing
+  casing_stainless_steel:  gtceu:clean_machine_casing
+  assembly_arm_housing:    utechnology:assembly_arm_housing
+  assembly_bench_unit:     utechnology:assembly_bench_unit
+  drawing_die_unit:        utechnology:drawing_die_unit
+  spindle_unit:            utechnology:spindle_unit
+  retrofit_kit_steel:      utechnology:steel_retrofit_kit
+  retrofit_kit_aluminium:  utechnology:aluminium_retrofit_kit
+  retrofit_kit_stainless_steel: utechnology:stainless_steel_retrofit_kit
+  module_specialization_lock: utechnology:specialization_lock
+  module_efficiency_coil:  utechnology:efficiency_coil
+  module_batch_bus:        utechnology:batch_bus
+  controller_component_assembler: utechnology:component_assembler
+  controller_assembly_hall: utechnology:assembly_hall
+  controller_wire_drawing_line: utechnology:wire_drawing_line
+  controller_turning_line: utechnology:turning_line
+  coil_winder_lv:          utechnology:lv_coil_winder
+  coil_winder_mv:          utechnology:mv_coil_winder
+  coil_winder_hv:          utechnology:hv_coil_winder
+  bearing_press_mv:        utechnology:mv_bearing_press
+  bearing_press_hv:        utechnology:hv_bearing_press
+
+# GTM recipe types the slice's machine names run
+recipe_types:
+  assembler:     gtceu:assembler
+  wiremill:      gtceu:wiremill
+  lathe:         gtceu:lathe
+  polarizer:     gtceu:polarizer
+  coil_winder:   utechnology:coil_winder
+  bearing_press: utechnology:bearing_press
+
+# Stock GTM recipes our changed recipes replace. Both the machine recipe and the hand-crafting
+# recipe are removed, so the old recipe can't be used to skip the new one.
+replaces:
+  motor_mv: [gtceu:assembler/electric_motor_mv, gtceu:shaped/electric_motor_mv]
+  motor_hv: [gtceu:assembler/electric_motor_hv, gtceu:shaped/electric_motor_hv]
+
+# Stock multiblocks disabled by decision disable-overlapping-large-multiblocks
+disabled_multiblocks: [gtceu:large_wiremill, gtceu:large_assembler, gtceu:large_cutter]

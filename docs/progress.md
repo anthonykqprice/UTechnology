@@ -4,7 +4,9 @@ Plan: `docs/prototype-plan.md`. This file says where the work is and why things 
 language. If a session restarts, resume from "Current state".
 
 ## Current state
-- Phase 1 (repository and pack skeleton): built; under review.
+- Phase 1 (repository and pack skeleton): done. Reviewed; fixes applied (JEI pinned to its newest
+  release, CI actions updated and the runner pinned, sturdier scripts, changelog). CI green.
+- Phase 2 (data pipeline and validator): built, GameTests green locally; under review.
 - Branch: `claude/gifted-hawking-pmc94i` (one branch for all five phases, one PR at the end).
 
 ## How to run things (from the repository root)
@@ -13,6 +15,7 @@ language. If a session restarts, resume from "Current state".
 | Simulator tests | `node design/sim/test.js` |
 | Design checks (stale generated files, validator) | `tools/check.sh` |
 | Addon build + GameTests | `cd addon && JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew --max-workers=1 build runGameTestServer` |
+| Regenerate everything from design/ | `python3 tools/generate.py` then `python3 tools/validate.py` |
 | Pack export (with addon jar) | `tools/export-pack.sh addon/build/libs/utechnology-0.1.0.jar UTechnology.mrpack` |
 
 In this cloud VM, Gradle must use Java 17 (the default `java` is 21) and `--max-workers=1` (Maven Central
@@ -48,3 +51,37 @@ Recorded in `design/multiblocks.yaml` → `decisions`:
   the run exit non-zero. *pack* checks the packwiz index is current and exports the `.mrpack` with
   the addon jar. The spike folder isn't built or checked (it's deleted).
 - **Network**: packwiz needed `files.minecraftforge.net` (Forge's version list); Anthony allowed it.
+
+### Phase 2
+- **Questions answered by Anthony**: build items (machines, cores, controllers, kits, modules) are
+  assembler recipes one voltage tier below the item's tier, 10 s each (`build_rule` in
+  `design/multiblocks.yaml`).
+- **IDs live in `design/ids.yaml`**: one table from design names (`motor_lv`) to game IDs
+  (`gtceu:lv_electric_motor`). Our own IDs: parts `utechnology:mv_stator_coil`, `hv_stator_coil`,
+  `precision_bearing`; cores, kits and modules by name; controllers named after the machine.
+- **What's generated** (all marked "do not edit"): `pack/kubejs/server_scripts/generated/recipes.js`,
+  `pack/kubejs/client_scripts/generated/hide.js`, the addon's data in
+  `pack/kubejs/data/utechnology/upgrade_{frames,modules,multiblocks}/`, the bonus test cases
+  (`addon/src/test/resources/bonus_cases.json`, 1,287 cases computed by the simulator's own code) and the
+  GameTest expectations. The addon's data lives in the pack (KubeJS loads `kubejs/data` as a data pack),
+  so rebalancing is "edit design, regenerate", with no recompile.
+- **Validator, two halves.** `tools/validate.py` checks the design on its own (items, IDs, conflicts, bus
+  sizes) and writes `docs/validation-report.md`. Whether stock recipes still match GTM 7.5.3 can only be
+  answered by the running game, so GameTests (`DesignTests`) check that: every ID exists, stock recipes
+  match, replaced recipes are gone, our recipes loaded as designed, and none of ours conflicts with any
+  other recipe of the same machine type in the whole game (not just the design).
+- **Conflict rule.** A conflict that breaks AE2 is one where every input of recipe A is also an input of
+  recipe B (programmed circuits included): a bus loaded for B could then run A. That is an error.
+  Recipes that merely share some inputs are listed in the report; distinct input buses keep them apart.
+- **What the GameTests found and fixed**: GTM's stock conveyor recipes use programmed circuit 1 (the
+  design didn't record it), and GTM's casing recipes use circuit 6. Retrofit kits take the same plates and
+  frame boxes as casings, so they now use **circuit 7** (decision `kit-circuit`); otherwise a bus loaded for
+  casings could make kits.
+- **Recipe IDs**: GTM's KubeJS integration puts the recipe type in front, so ours are
+  `utechnology:<type>/<name>`, e.g. `utechnology:assembler/motor_mv`, `utechnology:assembler/build/core_turning_line`.
+- **Hard mode**: GTM's hard recipe options are on in `pack/config/gtceu.yaml` (harder circuits, controllers,
+  redstone, tools, bricks, misc). Wood and dye nerfs stay off: on a skyblock start they only add tedium.
+- **MV/HV coil winders and the HV bearing press** follow the LV/MV builds (decision
+  `higher-tier-machine-builds` in the slice file); the design only had the first tier of each.
+- **Gate for later phases**: our own items, machines and recipe types don't exist until phases 3 and 4.
+  `DesignTests.NOT_YET_BUILT` lists what is skipped; each phase narrows it and it's empty at the end.
