@@ -9,6 +9,10 @@ file = "kubejs/assets/emi/index/stacks/utechnology.json"
 hash = "81d6afb871029f1f60d91f8a2c81a1bd51756e19eaf2a44422297a4d9974fd55"
 
 [[files]]
+file = "kubejs/assets/emi/recipe/filters/utechnology.json"
+hash = "1235d94273cfaaae2084c934c23151d977f33533b2cc527636ba6560c86d1987"
+
+[[files]]
 file = "kubejs/data/utechnology/upgrade_frames/aluminium.json"
 hash = "ddd5c70a5719ac1c97eba7c1869fffd9409c06efece857de2d4650ca3d24c86e"
 

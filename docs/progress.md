@@ -41,7 +41,7 @@ Recorded in `design/multiblocks.yaml` → `decisions`:
   scripts were carried over: `tools/make_empty_structure.py` (GameTest structure templates) and
   `tools/server_session.sh` (drives a dedicated server's console).
 - **Forge 47.4.27** (newest 1.20.1 Forge) for both the pack and the addon.
-- **JEI rather than EMI**: both GTM and AE2 have mature JEI integrations, including AE2 pattern
+- **JEI rather than EMI** (superseded: EMI replaced JEI after play-testing, see the end of this file): both GTM and AE2 have mature JEI integrations, including AE2 pattern
   encoding. Full list and reasons: `docs/mods.md`.
 - **Mod id `utechnology`**, Java package `dev.utechnology`. Item and block IDs will live under this mod id
   and must never change once released.
@@ -65,7 +65,7 @@ Recorded in `design/multiblocks.yaml` → `decisions`:
   (`gtceu:lv_electric_motor`). Our own IDs: parts `utechnology:mv_stator_coil`, `hv_stator_coil`,
   `precision_bearing`; cores, kits and modules by name; controllers named after the machine.
 - **What's generated** (all marked "do not edit"): `pack/kubejs/server_scripts/generated/recipes.js`,
-  `pack/kubejs/client_scripts/generated/hide.js`, the addon's data in
+  `pack/kubejs/client_scripts/generated/hide.js (now `pack/kubejs/assets/emi/`: EMI's hidden-items and recipe-filter files)`, the addon's data in
   `pack/kubejs/data/utechnology/upgrade_{frames,modules,multiblocks}/`, the bonus test cases
   (`addon/src/test/resources/bonus_cases.json`, 1,287 cases computed by the simulator's own code) and the
   GameTest expectations. The addon's data lives in the pack (KubeJS loads `kubejs/data` as a data pack),

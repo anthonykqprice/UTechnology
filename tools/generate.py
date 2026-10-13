@@ -5,6 +5,7 @@ Reads:  design/slice1-mechanical.yaml, design/multiblocks.yaml, design/ids.yaml
 Writes (all marked "generated, do not edit"):
   pack/kubejs/server_scripts/generated/recipes.js      changed, new and build recipes; removals
   pack/kubejs/assets/emi/index/stacks/utechnology.json  hides the disabled stock multiblocks in EMI
+  pack/kubejs/assets/emi/recipe/filters/utechnology.json  hides their multiblock preview pages
   pack/kubejs/data/utechnology/upgrade_frames/*.json   frames (addon reads these)
   pack/kubejs/data/utechnology/upgrade_modules/*.json  modules
   pack/kubejs/data/utechnology/upgrade_multiblocks/*.json  the four multiblocks
@@ -109,6 +110,12 @@ def emi_hidden_json(d):
     """EMI's index file (KubeJS serves kubejs/assets as a resource pack): removed stacks are hidden from EMI."""
     return json.dumps({"_comment": HEADER + " Disabled stock multiblocks are hidden from EMI.",
                        "removed": [f"item:{mid}" for mid in d.ids["disabled_multiblocks"]]}, indent=2) + "\n"
+
+
+def emi_filters_json(d):
+    """EMI recipe filters: hides recipes by ID. GregTech's multiblock preview pages use the machine's ID."""
+    return json.dumps({"_comment": HEADER + " Multiblock preview pages of the disabled stock multiblocks.",
+                       "filters": [{"id": mid} for mid in d.ids["disabled_multiblocks"]]}, indent=2) + "\n"
 
 
 # ---------------------------------------------------------------- data pack JSON for the addon
@@ -364,6 +371,7 @@ def main():
     d = design.load()
     write("pack/kubejs/server_scripts/generated/recipes.js", recipes_js(d))
     write("pack/kubejs/assets/emi/index/stacks/utechnology.json", emi_hidden_json(d))
+    write("pack/kubejs/assets/emi/recipe/filters/utechnology.json", emi_filters_json(d))
     clean_dir("pack/kubejs/client_scripts/generated", set())
     for sub, objs in (("upgrade_frames", frames_json(d)), ("upgrade_modules", modules_json(d)),
                       ("upgrade_multiblocks", multiblocks_json(d))):

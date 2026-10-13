@@ -42,7 +42,7 @@ legacyForge {
             systemProperty 'forge.logging.console.level', 'info'
             systemProperty 'forge.enabledGameTestNamespaces', project.mod_id
         }
-        // A client for looking at UI issues (JEI pages, machine screens). The pack's real client is Prism + the .mrpack.
+        // A client for looking at UI issues (EMI pages, machine screens). The pack's real client is Prism + the .mrpack.
         client {
             client()
             gameDirectory = project.file('run-client')

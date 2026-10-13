@@ -7,7 +7,8 @@
   encoding from EMI recipes. Checked in a real client: GregTech recipe pages show tooltips, our Coil Winder page
   works, and the disabled Large Wire Factory, Large Assembling Factory and Large Cutter are hidden.
 - The disabled multiblocks are hidden with EMI's own index file (`pack/kubejs/assets/emi/index/stacks/utechnology.json`,
-  generated) instead of a KubeJS JEI script.
+  generated) instead of a KubeJS JEI script; their multiblock preview pages are filtered out too
+  (`assets/emi/recipe/filters/`).
 
 ### 2026-10-13: JEI tooltips on GregTech recipe pages
 - Fixed: hovering items on GregTech machine recipe pages in JEI showed no tooltip. JEI 15.56 changed internals that
