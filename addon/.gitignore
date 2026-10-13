@@ -5,3 +5,4 @@ run-gametest/
 run-server/
 *.iml
 .idea/
+run-data/

@@ -8,7 +8,7 @@ language. If a session restarts, resume from "Current state".
   release, CI actions updated and the runner pinned, sturdier scripts, changelog). CI green.
 - Phase 2 (data pipeline and validator): done. Reviewed; the review's findings are fixed (see "Phase 2
   review" below). Committed on its own so CI checks it.
-- Phase 3 (items and single-block machines): in progress.
+- Phase 3 (items and single-block machines): built, 13 GameTests green locally; under review.
 - Branch: `claude/gifted-hawking-pmc94i` (one branch for all five phases, one PR at the end).
 
 ## How to run things (from the repository root)
@@ -18,6 +18,7 @@ language. If a session restarts, resume from "Current state".
 | Design checks (stale generated files, validator) | `tools/check.sh` |
 | Addon build + GameTests | `cd addon && JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew --max-workers=1 build runGameTestServer` |
 | Regenerate everything from design/ | `python3 tools/generate.py` then `python3 tools/validate.py` |
+| Regenerate the addon's models, blockstates and lang | `tools/run-datagen.sh` (set `GRADLE_ARGS=--max-workers=1` in this VM) |
 | Pack export (with addon jar) | `tools/export-pack.sh addon/build/libs/utechnology-0.1.0.jar UTechnology.mrpack` |
 
 In this cloud VM, Gradle must use Java 17 (the default `java` is 21) and `--max-workers=1` (Maven Central
@@ -113,3 +114,23 @@ Recorded in `design/multiblocks.yaml` → `decisions`:
   generated scripts are detected.
 - Not changed: GameTest expectations ship inside the addon jar (small, harmless); disabled multiblocks are
   hidden from JEI but still show in the creative tab.
+
+### Phase 3
+- **Content**: parts (`mv_stator_coil`, `hv_stator_coil`, `precision_bearing`), the four core blocks, three
+  retrofit kits and three modules (plain items for now; phase 4 gives kits and modules their behaviour),
+  a creative tab, and two machine types: the coil winder (LV, MV, HV) and the bearing press (MV, HV).
+- **How the machines are built**: the same way GTM builds its own simple machines (`SimpleTieredMachine`,
+  GTM's machine UI, normal overclocking: each tier above the recipe gives 2x speed for 4x EU/t). Their two
+  recipe types are registered in GTM's own registration event, with the same steps GTM uses.
+- **Recipes come from the pack**, as planned: the machines have no recipes in Java; the generated KubeJS
+  script adds them. The GameTests load that script, so they test what the pack ships.
+- **Placeholder art**: items borrow GTM and vanilla textures (stator coils use GTM's voltage coils), core
+  blocks use GTM gearbox casing textures, and machines use GTM's wiremill and compressor overlays.
+- **Models, blockstates, loot tables and names** are written by data generation (Registrate) into
+  `addon/src/generated/resources` and committed. The generator finishes in a second but something in the
+  mod stack keeps Java running afterwards, so `tools/run-datagen.sh` stops it once the files are written.
+- **GameTests** (`MachineTests`): each machine runs a recipe at its tier with the right duration and EU/t
+  (LV winder: MV stator coil, 200 ticks at 30 EU/t; MV winder: HV stator coil, 200 at 120; HV winder
+  overclocks it to 100 at 480; MV press: bearings, 160 at 120; HV press overclocks to 80 at 480), and an
+  LV winder refuses the MV-voltage recipe. `DesignTests` now checks all our IDs and recipes except the four
+  multiblock controllers (phase 4).

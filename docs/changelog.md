@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### 2026-10-13: Prototype phase 3 (items and single-block machines)
+- Addon: stator coils, precision bearing, four core blocks, retrofit kits, modules; coil winder (LV-HV) and
+  bearing press (MV-HV) with their recipe types. Recipes come from the generated KubeJS script.
+- Placeholder textures borrowed from GTM and vanilla; models and lang from data generation
+  (`tools/run-datagen.sh`).
+- GameTests: each machine runs its recipe at the right voltage and duration.
+
 ### 2026-10-13: Prototype phase 2 (data pipeline and validator)
 - `design/ids.yaml`: design names mapped to game IDs.
 - `tools/generate.py`: writes the pack's KubeJS recipe scripts (changed MV/HV motors, stator coils,

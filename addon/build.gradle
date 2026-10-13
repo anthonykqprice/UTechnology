@@ -4,6 +4,8 @@ plugins {
     id 'net.neoforged.moddev.legacyforge' version '2.0.91'
 }
 
+sourceSets.main.resources { srcDir 'src/generated/resources'; exclude '.cache' }
+
 version = mod_version
 group = maven_group
 base { archivesName = archives_base_name }
@@ -48,6 +50,16 @@ legacyForge {
         gameTestServer {
             type = 'gameTestServer'
             gameDirectory = project.file('run-gametest')
+        }
+        // Writes models, blockstates, loot tables and lang for our blocks, items and machines (Registrate).
+        // Output is committed in src/generated/resources; rerun after adding content.
+        data {
+            data()
+            gameDirectory = project.file('run-data')
+            programArguments.addAll('--mod', project.mod_id, '--all',
+                    '--output', file('src/generated/resources/').getAbsolutePath(),
+                    '--existing', file('src/main/resources/').getAbsolutePath(),
+                    '--existing-mod', 'gtceu')
         }
     }
     mods {
@@ -102,5 +114,6 @@ tasks.named('processResources', ProcessResources).configure {
 }
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    options.compilerArgs << '-Xlint:-removal' // Forge 1.20.1 marks new ResourceLocation(String) for removal; it's still the API here
     options.release.set(17)
 }

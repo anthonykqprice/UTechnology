@@ -1,0 +1,20 @@
+{
+  "block.utechnology.assembly_arm_housing": "Assembly Arm Housing",
+  "block.utechnology.assembly_bench_unit": "Assembly Bench Unit",
+  "block.utechnology.drawing_die_unit": "Drawing Die Unit",
+  "block.utechnology.hv_bearing_press": "§6Advanced Bearing Press II§r",
+  "block.utechnology.hv_coil_winder": "§6Advanced Coil Winder II§r",
+  "block.utechnology.lv_coil_winder": "Basic Coil Winder §r",
+  "block.utechnology.mv_bearing_press": "§bAdvanced Bearing Press §r",
+  "block.utechnology.mv_coil_winder": "§bAdvanced Coil Winder §r",
+  "block.utechnology.spindle_unit": "Spindle Unit",
+  "item.utechnology.aluminium_retrofit_kit": "Aluminium Retrofit Kit",
+  "item.utechnology.batch_bus": "Batch Bus",
+  "item.utechnology.efficiency_coil": "Efficiency Coil",
+  "item.utechnology.hv_stator_coil": "HV Stator Coil",
+  "item.utechnology.mv_stator_coil": "MV Stator Coil",
+  "item.utechnology.precision_bearing": "Precision Bearing",
+  "item.utechnology.specialization_lock": "Specialization Lock",
+  "item.utechnology.stainless_steel_retrofit_kit": "Stainless Steel Retrofit Kit",
+  "item.utechnology.steel_retrofit_kit": "Steel Retrofit Kit"
+}

@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "utechnology:block/machine/hv_coil_winder",
+      "y": 90
+    },
+    "facing=north": {
+      "model": "utechnology:block/machine/hv_coil_winder"
+    },
+    "facing=south": {
+      "model": "utechnology:block/machine/hv_coil_winder",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "utechnology:block/machine/hv_coil_winder",
+      "y": 270
+    }
+  }
+}
