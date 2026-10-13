@@ -10,7 +10,7 @@ language. If a session restarts, resume from "Current state".
   review" below). Committed on its own so CI checks it.
 - Phase 3 (items and single-block machines): done. Reviewed; fixes applied.
 - Phase 4 (upgradeable multiblocks): done. Reviewed; fixes applied (194 GameTests, JUnit green).
-- Phase 5 (test world, manual test list): built; under review.
+- Phase 5 (test world, manual test list): built; full pack boots with kits checked; under review.
 - Branch: `claude/gifted-hawking-pmc94i` (one branch for all five phases, one PR at the end).
 
 ## How to run things (from the repository root)
@@ -235,3 +235,25 @@ frame voltage; only inputs and output space limit parallels. Recorded as decisio
 - **Known limits, not fixed**: a dedicated server's clients don't get the upgrade data, so the JEI multiblock
   preview uses fallback hatch limits and shows only steel blocks (single-player is unaffected). `/reload`
   applies new data to the next recipe but doesn't re-check formed structures until a block changes.
+
+### Phase 5: the test world
+- **Kits, not a custom world**: `design/prototype.yaml` defines the test world. The generator asks the simulator
+  what the goal (4 each of HV robot arms, conveyors and pistons) and the starter factory cost in supplied
+  materials, adds 50%, and writes `pack/kubejs/server_scripts/generated/starter.js`. Every player gets the kits
+  once on first join as labelled shulker boxes (10 boxes): materials, machines and hatches, AE2, creative
+  power, fluids, and real LV-HV power. `/utechkit` gives them again. This is a one-time script, not a hot path.
+- **Real power** is real generators (LV, MV, HV combustion) and cables, with diesel buckets sized by the
+  simulator from the goal's energy (480 EU per mB). **Rubber** (about 155 buckets' worth) comes from creative
+  tanks, because the rubber chain is out of scope; lubricant comes as real buckets.
+- **Maintenance hatches in the kit are auto-maintenance**, so the test is about our machines, not GT
+  maintenance.
+- **`docs/prototype-estimate.md`** (generated): the simulator's time for the goal, single-block machines only
+  (about 33 minutes) and with the multiblocks (about 17 minutes), with the kit's generators.
+- **`docs/prototype-test.md`**: the manual checklist.
+- **The full pack boots on a dedicated server** in CI (`tools/pack-server-smoke.sh`): the exported .mrpack with
+  every server-side mod (AE2, JEI, Jade and the rest load together), configs, scripts and the addon. It runs
+  `/utechkit check`, which builds every kit box and checks every item exists, and fails on KubeJS errors.
+  This found a real bug before anyone played: KubeJS's script engine rejects `const` inside loops on the
+  second pass, so kits with more than one box would have failed to give.
+- **`docs/progression.md`**: the mod/tier table CLAUDE.md asks for. AE2 isn't gated to LV by recipes yet
+  (the prototype hands it out); that's milestone 1 work.

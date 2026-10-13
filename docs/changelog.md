@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### 2026-10-13: Prototype phase 5 (test world)
+- `design/prototype.yaml`: the test world; starter kits sized by the simulator, given on first join and with
+  `/utechkit`; `/utechkit check`.
+- `tools/pack-server-smoke.sh` and a CI job: the exported pack boots on a dedicated server with all
+  server-side mods and the kits check out.
+- Docs: `prototype-test.md` (manual checklist), `prototype-estimate.md` (generated), `progression.md`.
+
 ### 2026-10-13: Prototype phase 4 (upgradeable multiblocks)
 - Component Assembler, Assembly Hall, Wire Drawing Line and Turning Line on one base class: frames,
   1-32 segments (counted up to the frame's cap), modules in controller slots, specialization lock, retrofit

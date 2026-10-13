@@ -84,20 +84,21 @@ const UTECH_KITS = [
 ]
 
 // Splits each kit into shulker boxes of 27 stacks.
+// (No const/let inside loops: KubeJS's Rhino engine treats them as redeclarations on the second pass.)
 function utechBoxes(kit) {
-  const [name, items] = kit
-  const stacks = []
-  items.forEach(([id, count]) => {
-    const item = Item.of(id)
-    if (item.isEmpty()) { console.error(`utechnology: kit item ${id} does not exist`); return }
-    const max = item.maxStackSize
-    for (let left = count; left > 0; left -= max) stacks.push([id, Math.min(max, left)])
+  var name = kit[0], items = kit[1]
+  var stacks = []
+  items.forEach(entry => {
+    var item = Item.of(entry[0])
+    if (item.isEmpty()) { console.error(`utechnology: kit item ${entry[0]} does not exist`); return }
+    var max = item.maxStackSize
+    for (var left = entry[1]; left > 0; left -= max) stacks.push([entry[0], Math.min(max, left)])
   })
-  const boxes = []
-  for (let i = 0; i < stacks.length; i += 27) {
-    const part = stacks.slice(i, i + 27)
-    const label = stacks.length > 27 ? `${name} (${i / 27 + 1}/${Math.ceil(stacks.length / 27)})` : name
-    const entries = part.map(([id, n], slot) => `{Slot:${slot}b,id:"${id}",Count:${n}b}`).join(',')
+  var boxes = []
+  var count = Math.ceil(stacks.length / 27)
+  for (var i = 0; i < stacks.length; i += 27) {
+    var label = count > 1 ? `${name} (${i / 27 + 1}/${count})` : name
+    var entries = stacks.slice(i, i + 27).map((s, slot) => `{Slot:${slot}b,id:"${s[0]}",Count:${s[1]}b}`).join(',')
     boxes.push(Item.of('minecraft:white_shulker_box', `{BlockEntityTag:{Items:[${entries}]},display:{Name:'{"text":"Kit: ${label}","italic":false}'}}`))
   }
   return boxes
@@ -120,11 +121,19 @@ ServerEvents.commandRegistry(event => {
   event.register(Commands.literal('utechkit')
     .requires(src => src.hasPermission(2))
     .executes(ctx => { utechGiveKits(ctx.source.playerOrException); return 1 })
-    .then(Commands.literal('check').executes(ctx => {
-      const missing = []
-      UTECH_KITS.forEach(([name, items]) => items.forEach(([id]) => { if (Item.of(id).isEmpty()) missing.push(id) }))
-      console.info(`utechkit check: ${missing.length} missing${missing.length ? ': ' + missing.join(', ') : ''}`)
-      ctx.source.sendSystemMessage(Text.of(`utechkit check: ${missing.length} missing${missing.length ? ': ' + missing.join(', ') : ''}`))
-      return missing.length ? 0 : 1
-    })))
+    .then(Commands.literal('check').executes(ctx => { try {
+      var kitMissing = []
+      UTECH_KITS.forEach(([name, items]) => items.forEach(([id]) => { if (Item.of(id).isEmpty()) kitMissing.push(id) }))
+      // build every box, as a player would get them, and count what's inside
+      var kitBoxes = 0, kitStacks = 0, kitExpected = 0
+      UTECH_KITS.forEach(kit => {
+        kit[1].forEach(([id, count]) => { var kitMax = Item.of(id).maxStackSize; kitExpected += Math.ceil(count / kitMax) })
+        utechBoxes(kit).forEach(box => { kitBoxes++; kitStacks += box.nbt.getCompound('BlockEntityTag').getList('Items', 10).size() })
+      })
+      if (kitStacks !== kitExpected) kitMissing.push(`boxes hold ${kitStacks} stacks, expected ${kitExpected}`)
+      console.info(`utechkit check: ${kitBoxes} boxes, ${kitStacks} stacks`)
+      console.info(`utechkit check: ${kitMissing.length} missing${kitMissing.length ? ': ' + kitMissing.join(', ') : ''}`)
+      ctx.source.sendSystemMessage(Text.of(`utechkit check: ${kitMissing.length} missing${kitMissing.length ? ': ' + kitMissing.join(', ') : ''}`))
+      return kitMissing.length ? 0 : 1
+    } catch (e) { console.error(`utechkit check failed: ${e}`); return 0 } })))
 })

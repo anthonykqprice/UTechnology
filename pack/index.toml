@@ -54,7 +54,7 @@ hash = "a3808a2e3aa0c3cf0db470df764238415aabc325c46f3d430a0c464163459e75"
 
 [[files]]
 file = "kubejs/server_scripts/generated/starter.js"
-hash = "38f44eb6ca6d0893fe678004fc26f89c71abcf0d9137afab2c2739a87ac0c148"
+hash = "afb8a7bc2556ebacef8d4d5ed6ddc42e5c730094bf23377993de4df4d89a2086"
 
 [[files]]
 file = "kubejs/startup_scripts/.gitkeep"

@@ -101,7 +101,9 @@ Unit takes 2 LV motors, 1 LV piston and 1 steel frame box.
   the machine now has an aluminium frame". N is one kit per 8 casings and frame boxes, rounded up: about 6
   for 4 segments. All casings and the 4 corner frame boxes turn to aluminium (Frostproof casings). You get
   the old steel casings and frame boxes back. Hatches, controller and cores stay.
-- [ ] With too few kits nothing changes, and a message says how many are needed.
+- [ ] With too few kits nothing changes, and a message says how many are needed. Retrofitting is refused while
+  the machine is running a recipe (wait for it to finish), and goes one frame at a time (steel to aluminium to
+  stainless steel, and back down the same way).
 - [ ] **Expect** after the upgrade: *Frame: aluminium (max MV)*, segment cap 8, 2 module slots. The HV motor
   recipe now runs.
 - [ ] **Downgrade:** right-click with Steel Retrofit Kits (24 steel plates + 4 steel frames + circuit 7). It goes
