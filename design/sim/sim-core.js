@@ -80,7 +80,7 @@ function capability(data, G, r, oc) {
   // (ContentModifier), then overclocking judged on the modified EU/t (OverclockingLogic): ULV recipes get one
   // overclock fewer, and overclocking stops before a recipe would take under 1 tick.
   const ticks0 = Math.round(r.duration * 20);
-  const ticksMod = dmul === 1 ? ticks0 : Math.floor(ticks0 * dmul);
+  const ticksMod = dmul === 1 ? ticks0 : Math.max(1, Math.floor(ticks0 * dmul));   // GTM: at least 1 tick
   const eutMod = G.energy === 1 ? r.eut : Math.floor(r.eut * G.energy);
   const rtMod = recipeTier(eutMod);
   let n = Math.max(0, G.tier - rtMod - (rtMod === 0 ? 1 : 0));

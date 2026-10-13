@@ -31,6 +31,9 @@
   "utechnology.display.over_cap": "Build a better frame to use all segments",
   "utechnology.display.parallels": "Parallels: up to %s",
   "utechnology.display.segments": "Segments: %s counted of %s built (frame cap %s)",
+  "utechnology.frame.aluminium": "Aluminium",
+  "utechnology.frame.stainless_steel": "Stainless Steel",
+  "utechnology.frame.steel": "Steel",
   "utechnology.gui.modules": "Modules",
   "utechnology.machine.not_formed": "Form the structure first",
   "utechnology.machine.tooltip.upgradeable": "Upgradeable: frame (retrofit kits), segments (build them), modules (controller slots).",
@@ -43,8 +46,10 @@
   "utechnology.recipe.filtered": "This machine doesn't run this kind of recipe",
   "utechnology.recipe.locked": "Specialization lock: locked to another recipe",
   "utechnology.recipe.no_data": "Upgrade data not loaded",
+  "utechnology.retrofit.busy": "Wait until the machine finishes its recipe",
   "utechnology.retrofit.done": "Used %s kits: the machine now has a %s frame",
   "utechnology.retrofit.not_enough_kits": "Retrofitting this machine takes %s kits",
+  "utechnology.retrofit.one_step": "Retrofit one frame at a time: use kits of the frame just above or below %s",
   "utechnology.retrofit.same_frame": "The machine already has this frame",
   "utechnology.structure.mixed_frames": "All casings and frame boxes must be the same frame material"
 }

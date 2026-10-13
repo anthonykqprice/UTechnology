@@ -3,6 +3,8 @@ package dev.utechnology.upgrade;
 import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity;
+import com.gregtechceu.gtceu.api.machine.feature.IMachineLife;
+import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine;
 import com.gregtechceu.gtceu.api.pattern.BlockPattern;
 import com.gregtechceu.gtceu.api.pattern.error.PatternStringError;
@@ -41,13 +43,11 @@ import java.util.*;
  * Upgrades live on the machine and are persisted: frame, segment count, modules and the locked recipe. The bonus
  * is computed when the structure forms, a module changes, or the upgrade data reloads, never per recipe.
  */
-public class UpgradeableMultiblockMachine extends WorkableElectricMultiblockMachine {
+public class UpgradeableMultiblockMachine extends WorkableElectricMultiblockMachine implements IMachineLife {
 
     protected static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(
             UpgradeableMultiblockMachine.class, WorkableElectricMultiblockMachine.MANAGED_FIELD_HOLDER);
 
-    /** Index of the repeatable aisle in the pattern: 0 front, 1 segments, 2 end. */
-    public static final int SEGMENT_AISLE = 1;
     /** The most module slots any frame can have; slots beyond the frame's count are ignored. */
     public static final int MODULE_SLOTS = 3;
 
@@ -76,8 +76,14 @@ public class UpgradeableMultiblockMachine extends WorkableElectricMultiblockMach
     public UpgradeableMultiblockMachine(IMachineBlockEntity holder, String specKey, Object... args) {
         super(holder, args);
         this.specKey = specKey;
-        this.modules = new CustomItemStackHandler(MODULE_SLOTS);
-        this.modules.setFilter(stack -> UpgradeData.get().moduleByItem(stack.getItem()) != null);
+        this.modules = new CustomItemStackHandler(MODULE_SLOTS) {
+
+            @Override
+            public int getSlotLimit(int slot) {
+                return 1;
+            }
+        };
+        this.modules.setFilter(stack -> isModuleItem(stack.getItem()));
         this.modules.setOnContentsChanged(this::onModulesChanged);
     }
 
@@ -119,28 +125,29 @@ public class UpgradeableMultiblockMachine extends WorkableElectricMultiblockMach
     // ------------------------------------------------------------------ structure
 
     /**
-     * GTM memoizes one BlockPattern per machine type and stores the matched repeat counts in it, shared by every
-     * controller of that type and checked from two threads. Check and copy under the pattern's monitor.
+     * Checks the structure and reads its frame and segment count from this controller's own match context (the
+     * predicates record frames, casing and frame-box positions, and core positions there). GTM memoizes one
+     * BlockPattern per machine type and its own repeat count is shared by every controller of that type, and
+     * read without a lock by the client's multiblock preview, so the count is taken from the context instead:
+     * one core per segment.
      */
     @Override
     public boolean checkPattern() {
         BlockPattern pattern = getPattern();
         if (pattern == null) return false;
-        synchronized (pattern) {
-            var state = getMultiblockState();
-            boolean formed = pattern.checkPatternAt(state, false);
-            if (!formed) return false;
-            var ctx = state.getMatchContext();
-            Set<String> frames = ctx.getOrDefault(FramePredicates.FRAMES, Set.of());
-            if (frames.size() != 1) {
-                state.setError(new PatternStringError("utechnology.structure.mixed_frames"));
-                return false;
-            }
-            checked = new Checked(pattern.getFormedRepetitionCount()[SEGMENT_AISLE], frames.iterator().next(),
-                    positions(ctx.getOrDefault(FramePredicates.CASINGS, new LongOpenHashSet())),
-                    positions(ctx.getOrDefault(FramePredicates.BOXES, new LongOpenHashSet())));
-            return true;
+        var state = getMultiblockState();
+        if (!pattern.checkPatternAt(state, false)) return false;
+        var ctx = state.getMatchContext();
+        Set<String> frames = ctx.getOrDefault(FramePredicates.FRAMES, Set.of());
+        if (frames.size() != 1) {
+            state.setError(new PatternStringError("utechnology.structure.mixed_frames"));
+            return false;
         }
+        LongOpenHashSet cores = ctx.getOrDefault(FramePredicates.CORES, new LongOpenHashSet());
+        checked = new Checked(cores.size(), frames.iterator().next(),
+                positions(ctx.getOrDefault(FramePredicates.CASINGS, new LongOpenHashSet())),
+                positions(ctx.getOrDefault(FramePredicates.BOXES, new LongOpenHashSet())));
+        return true;
     }
 
     private static List<BlockPos> positions(LongOpenHashSet set) {
@@ -202,12 +209,17 @@ public class UpgradeableMultiblockMachine extends WorkableElectricMultiblockMach
             }
             bonus = BonusCalculator.compute(f.stats(), builtSegments, mods);
             bonusVersion = data.version();
+            if (!bonus.locked()) lockedRecipe = ""; // a lock in a slot the frame can't use isn't in effect
+            acceptsCache.clear();
+            // GTM reruns its last modified recipe without the modifiers unless the recipe is marked dirty
+            if (!isRemote()) getRecipeLogic().markLastRecipeDirty();
         }
         return bonus;
     }
 
     private void onModulesChanged() {
         bonus = null;
+        if (getLevel() != null && !isRemote()) getRecipeLogic().markLastRecipeDirty();
         var data = UpgradeData.get();
         boolean hasLock = false;
         for (int i = 0; i < modules.getSlots(); i++) {
@@ -217,14 +229,49 @@ public class UpgradeableMultiblockMachine extends WorkableElectricMultiblockMach
         if (!hasLock) lockedRecipe = "";
     }
 
-    /** The recipe filter: component recipes only, everything else, or no filter (multiblock spec). */
+    private final Map<ResourceLocation, Boolean> acceptsCache = new HashMap<>();
+    private int acceptsVersion = -1;
+
+    /**
+     * The recipe filter: component recipes only, everything else, or no filter (multiblock spec). Cached per
+     * recipe for the current data version, and applied when GTM searches recipes, so filtered recipes are never
+     * candidates (and don't count as failed matches).
+     */
     public boolean accepts(GTRecipe recipe) {
         var spec = spec();
         if (spec == null) return false;
         if (spec.filter().equals("none")) return true;
+        int v = UpgradeData.get().version();
+        if (v != acceptsVersion) {
+            acceptsCache.clear();
+            acceptsVersion = v;
+        }
+        if (recipe.getId() == null) return computeAccepts(spec, recipe);
+        return acceptsCache.computeIfAbsent(recipe.getId(), id -> computeAccepts(spec, recipe));
+    }
+
+    private static boolean computeAccepts(UpgradeData.Spec spec, GTRecipe recipe) {
         var outs = RecipeHelper.getOutputItems(recipe);
         boolean component = !outs.isEmpty() && spec.componentItems().contains(outs.get(0).getItem());
         return spec.filter().equals("component") == component;
+    }
+
+    @Override
+    protected RecipeLogic createRecipeLogic(Object... args) {
+        return new RecipeLogic(this) {
+
+            @Override
+            public Iterator<GTRecipe> searchRecipe() {
+                return machine.getRecipeType().searchRecipe(machine, UpgradeableMultiblockMachine.this::accepts);
+            }
+        };
+    }
+
+    // ------------------------------------------------------------------ breaking the controller drops its modules
+
+    @Override
+    public void onMachineRemoved() {
+        clearInventory(modules);
     }
 
     /** A specialization lock locks to the first recipe the machine runs after it is installed. */
@@ -239,16 +286,30 @@ public class UpgradeableMultiblockMachine extends WorkableElectricMultiblockMach
 
     // ------------------------------------------------------------------ right-click: modules and retrofit kits
 
+    /** Module and kit items. The upgrade data is server data, so a client without it falls back to our items. */
+    static boolean isModuleItem(net.minecraft.world.item.Item item) {
+        var data = UpgradeData.get();
+        if (!data.modules().isEmpty()) return data.moduleByItem(item) != null;
+        return dev.utechnology.content.UTItems.isModule(item);
+    }
+
+    static boolean isKitItem(net.minecraft.world.item.Item item) {
+        var data = UpgradeData.get();
+        if (!data.frames().isEmpty()) return data.frameByKit(item) != null;
+        return dev.utechnology.content.UTItems.isKit(item);
+    }
+
     @Override
     public InteractionResult onUse(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand,
                                    BlockHitResult hit) {
         ItemStack held = player.getItemInHand(hand);
         var data = UpgradeData.get();
-        if (data.frameByKit(held.getItem()) != null) {
-            if (!world.isClientSide) message(player, retrofit(player, data.frameByKit(held.getItem())));
+        if (isKitItem(held.getItem())) {
+            if (!world.isClientSide && data.frameByKit(held.getItem()) != null)
+                message(player, retrofit(player, data.frameByKit(held.getItem())));
             return InteractionResult.sidedSuccess(world.isClientSide);
         }
-        if (data.moduleByItem(held.getItem()) != null) {
+        if (isModuleItem(held.getItem())) {
             if (!world.isClientSide) message(player, installModule(held, player));
             return InteractionResult.sidedSuccess(world.isClientSide);
         }
@@ -322,8 +383,13 @@ public class UpgradeableMultiblockMachine extends WorkableElectricMultiblockMach
      */
     public Component retrofit(Player player, UpgradeData.Frame target) {
         var current = frame();
-        if (!isFormed() || current == null) return Component.translatable("utechnology.machine.not_formed");
+        if (!isFormed() || current == null || getMultiblockState().hasError() || casingPositions.isEmpty())
+            return Component.translatable("utechnology.machine.not_formed");
         if (current.key().equals(target.key())) return Component.translatable("utechnology.retrofit.same_frame");
+        // design: kits of the next frame up, or the next one down
+        if (Math.abs(current.stats().tier() - target.stats().tier()) != 1)
+            return Component.translatable("utechnology.retrofit.one_step", frameName(current));
+        if (getRecipeLogic().isWorking()) return Component.translatable("utechnology.retrofit.busy");
         int need = kitsNeeded();
         boolean creative = player.getAbilities().instabuild;
         if (!creative && countItem(player, target.kit()) < need)
@@ -336,17 +402,27 @@ public class UpgradeableMultiblockMachine extends WorkableElectricMultiblockMach
         for (BlockPos p : boxes) level.setBlockAndUpdate(p, target.frameBox().defaultBlockState());
         give(player, new ItemStack(current.casing().asItem(), casings.size()));
         give(player, new ItemStack(current.frameBox().asItem(), boxes.size()));
-        return Component.translatable("utechnology.retrofit.done", need, target.key());
+        return Component.translatable("utechnology.retrofit.done", need, frameName(target));
+    }
+
+    static Component frameName(UpgradeData.Frame f) {
+        return Component.translatable("utechnology.frame." + f.key());
+    }
+
+    private static List<ItemStack> stacks(Player p) {
+        List<ItemStack> out = new ArrayList<>(p.getInventory().items);
+        out.addAll(p.getInventory().offhand);
+        return out;
     }
 
     private static int countItem(Player p, net.minecraft.world.item.Item item) {
         int n = 0;
-        for (ItemStack s : p.getInventory().items) if (s.is(item)) n += s.getCount();
+        for (ItemStack s : stacks(p)) if (s.is(item)) n += s.getCount();
         return n;
     }
 
     private static void takeItem(Player p, net.minecraft.world.item.Item item, int count) {
-        for (ItemStack s : p.getInventory().items) {
+        for (ItemStack s : stacks(p)) {
             if (count <= 0) return;
             if (s.is(item)) {
                 int t = Math.min(count, s.getCount());
@@ -378,7 +454,7 @@ public class UpgradeableMultiblockMachine extends WorkableElectricMultiblockMach
         var f = frame();
         var b = bonus();
         if (f == null || b == null) return;
-        text.add(Component.translatable("utechnology.display.frame", f.key(), BonusCalculator.TIERS.get(f.stats().maxVoltageTier())));
+        text.add(Component.translatable("utechnology.display.frame", frameName(f), BonusCalculator.TIERS.get(f.stats().maxVoltageTier())));
         text.add(Component.translatable("utechnology.display.segments", b.counted(), b.built(), f.stats().segmentCap()));
         if (b.built() > b.counted())
             text.add(Component.translatable("utechnology.display.over_cap").withStyle(ChatFormatting.YELLOW));

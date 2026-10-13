@@ -24,6 +24,7 @@ public final class FramePredicates {
     public static final String FRAMES = "utechnology:frames";
     public static final String CASINGS = "utechnology:casing_positions";
     public static final String BOXES = "utechnology:frame_box_positions";
+    public static final String CORES = "utechnology:core_positions";
 
     private static TraceabilityPredicate of(Function<UpgradeData.Frame, Block> part, String positions, Block fallback) {
         return new TraceabilityPredicate((MultiblockState state) -> {
@@ -51,7 +52,17 @@ public final class FramePredicates {
 
     /** A frame box of the frame material (e.g. gtceu:steel_frame). */
     public static TraceabilityPredicate frameBox() {
-        return of(UpgradeData.Frame::frameBox, BOXES, GTBlocks.CASING_STEEL_SOLID.get());
+        Block steelBox = net.minecraftforge.registries.ForgeRegistries.BLOCKS.getValue(new net.minecraft.resources.ResourceLocation("gtceu", "steel_frame"));
+        return of(UpgradeData.Frame::frameBox, BOXES, steelBox);
+    }
+
+    /** The machine's core block; its positions give the segment count (one core per segment). */
+    public static TraceabilityPredicate core(Block core) {
+        return new TraceabilityPredicate((MultiblockState state) -> {
+            if (state.getBlockState().getBlock() != core) return false;
+            state.getMatchContext().<LongOpenHashSet>getOrCreate(CORES, LongOpenHashSet::new).add(state.getPos().asLong());
+            return true;
+        }, () -> new BlockInfo[] { BlockInfo.fromBlockState(core.defaultBlockState()) });
     }
 
     private FramePredicates() {}

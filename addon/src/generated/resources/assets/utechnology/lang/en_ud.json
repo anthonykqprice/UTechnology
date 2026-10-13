@@ -31,6 +31,9 @@
   "utechnology.display.over_cap": "sʇuǝɯbǝs ןןɐ ǝsn oʇ ǝɯɐɹɟ ɹǝʇʇǝq ɐ pןınᗺ",
   "utechnology.display.parallels": "%s oʇ dn :sןǝןןɐɹɐԀ",
   "utechnology.display.segments": ")%s dɐɔ ǝɯɐɹɟ( ʇןınq %s ɟo pǝʇunoɔ %s :sʇuǝɯbǝS",
+  "utechnology.frame.aluminium": "ɯnıuıɯnןⱯ",
+  "utechnology.frame.stainless_steel": "ןǝǝʇS ssǝןuıɐʇS",
+  "utechnology.frame.steel": "ןǝǝʇS",
   "utechnology.gui.modules": "sǝןnpoW",
   "utechnology.machine.not_formed": "ʇsɹıɟ ǝɹnʇɔnɹʇs ǝɥʇ ɯɹoℲ",
   "utechnology.machine.tooltip.upgradeable": "˙)sʇoןs ɹǝןןoɹʇuoɔ( sǝןnpoɯ ')ɯǝɥʇ pןınq( sʇuǝɯbǝs ')sʇıʞ ʇıɟoɹʇǝɹ( ǝɯɐɹɟ :ǝןqɐǝpɐɹbd∩",
@@ -43,8 +46,10 @@
   "utechnology.recipe.filtered": "ǝdıɔǝɹ ɟo puıʞ sıɥʇ unɹ ʇ,usǝop ǝuıɥɔɐɯ sıɥ⟘",
   "utechnology.recipe.locked": "ǝdıɔǝɹ ɹǝɥʇouɐ oʇ pǝʞɔoן :ʞɔoן uoıʇɐzıןɐıɔǝdS",
   "utechnology.recipe.no_data": "pǝpɐoן ʇou ɐʇɐp ǝpɐɹbd∩",
+  "utechnology.retrofit.busy": "ǝdıɔǝɹ sʇı sǝɥsıuıɟ ǝuıɥɔɐɯ ǝɥʇ ןıʇun ʇıɐM",
   "utechnology.retrofit.done": "ǝɯɐɹɟ %s ɐ sɐɥ ʍou ǝuıɥɔɐɯ ǝɥʇ :sʇıʞ %s pǝs∩",
   "utechnology.retrofit.not_enough_kits": "sʇıʞ %s sǝʞɐʇ ǝuıɥɔɐɯ sıɥʇ buıʇʇıɟoɹʇǝᴚ",
+  "utechnology.retrofit.one_step": "%s ʍoןǝq ɹo ǝʌoqɐ ʇsnظ ǝɯɐɹɟ ǝɥʇ ɟo sʇıʞ ǝsn :ǝɯıʇ ɐ ʇɐ ǝɯɐɹɟ ǝuo ʇıɟoɹʇǝᴚ",
   "utechnology.retrofit.same_frame": "ǝɯɐɹɟ sıɥʇ sɐɥ ʎpɐǝɹןɐ ǝuıɥɔɐɯ ǝɥ⟘",
   "utechnology.structure.mixed_frames": "ןɐıɹǝʇɐɯ ǝɯɐɹɟ ǝɯɐs ǝɥʇ ǝq ʇsnɯ sǝxoq ǝɯɐɹɟ puɐ sbuısɐɔ ןןⱯ"
 }

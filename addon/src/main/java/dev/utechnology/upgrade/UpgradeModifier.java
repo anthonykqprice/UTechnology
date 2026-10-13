@@ -31,6 +31,10 @@ public final class UpgradeModifier implements RecipeModifier {
     @Override
     public ModifierFunction getModifier(com.gregtechceu.gtceu.api.machine.MetaMachine machine, GTRecipe recipe) {
         if (!(machine instanceof UpgradeableMultiblockMachine m) || !m.isFormed()) return ModifierFunction.NULL;
+        // Voltage gate first, on the recipe as it comes (one parallel). GTM's own check (ELECTRIC_OVERCLOCK) divides
+        // EU/t by the parallel count, which with free parallels would let a frame run recipes above its tier.
+        if (com.gregtechceu.gtceu.api.recipe.RecipeHelper.getRecipeEUtTier(recipe) > m.getTier())
+            return ModifierFunction.cancel(Component.translatable("gtceu.recipe_modifier.insufficient_voltage"));
         if (!m.accepts(recipe))
             return ModifierFunction.cancel(Component.translatable("utechnology.recipe.filtered"));
         var b = m.bonus();
@@ -40,8 +44,13 @@ public final class UpgradeModifier implements RecipeModifier {
 
         // Parallels: limited by the inputs present and output space, never by power (decision free-parallels):
         // the EU/t is not multiplied, so all parallels share one recipe's draw.
+        // Upkeep (batch bus lubricant) is added for one parallel first, so the parallel count also respects how much
+        // lubricant is there; then everything (items, fluids, upkeep) is multiplied by the parallels.
+        ModifierFunction withUpkeep = b.upkeepPerParallel().isEmpty() ? ModifierFunction.IDENTITY : upkeep(b.upkeepPerParallel());
+        GTRecipe base = withUpkeep.apply(recipe);
+        if (base == null) return ModifierFunction.NULL;
         int limit = b.parallelLimit();
-        int p = limit <= 1 ? 1 : ParallelLogic.getParallelAmountWithoutEU(machine, recipe, limit);
+        int p = limit <= 1 ? 1 : ParallelLogic.getParallelAmountWithoutEU(machine, base, limit);
         if (p <= 0) return ModifierFunction.NULL;
 
         var fb = ModifierFunction.builder();
@@ -49,21 +58,21 @@ public final class UpgradeModifier implements RecipeModifier {
         double duration = b.duration() * b.lockDuration();
         if (duration != 1) fb.durationMultiplier(duration);
         if (b.energy() != 1) fb.eutMultiplier(b.energy());
-        ModifierFunction f = fb.build();
-        if (!b.upkeepPerParallel().isEmpty()) f = f.andThen(upkeep(b.upkeepPerParallel(), p));
-        return f;
+        return withUpkeep.andThen(fb.build());
     }
 
-    /** Adds module upkeep fluids (e.g. the batch bus's lubricant) as recipe inputs, per parallel. */
-    static ModifierFunction upkeep(List<BonusCalculator.Upkeep> upkeep, int parallels) {
+    private static final java.util.Map<String, net.minecraft.world.level.material.Fluid> FLUIDS = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Adds module upkeep fluids (e.g. the batch bus's lubricant) as recipe inputs, for one parallel. */
+    static ModifierFunction upkeep(List<BonusCalculator.Upkeep> upkeep) {
         return recipe -> {
             var inputs = new HashMap<>(recipe.inputs);
             List<Content> fluids = new ArrayList<>(inputs.getOrDefault(FluidRecipeCapability.CAP, List.of()));
             for (var u : upkeep) {
-                var fluid = ForgeRegistries.FLUIDS.getValue(new ResourceLocation(u.fluid()));
+                var fluid = FLUIDS.computeIfAbsent(u.fluid(), id -> ForgeRegistries.FLUIDS.getValue(new ResourceLocation(id)));
                 if (fluid == null) return null;
                 int max = ChanceLogic.getMaxChancedValue();
-                fluids.add(new Content(FluidIngredient.of(fluid, u.amount() * parallels), max, max, 0));
+                fluids.add(new Content(FluidIngredient.of(fluid, u.amount()), max, max, 0));
             }
             inputs.put(FluidRecipeCapability.CAP, fluids);
             var copy = new GTRecipe(recipe.recipeType, recipe.id, inputs, new HashMap<>(recipe.outputs),

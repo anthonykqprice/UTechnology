@@ -9,7 +9,8 @@ language. If a session restarts, resume from "Current state".
 - Phase 2 (data pipeline and validator): done. Reviewed; the review's findings are fixed (see "Phase 2
   review" below). Committed on its own so CI checks it.
 - Phase 3 (items and single-block machines): done. Reviewed; fixes applied.
-- Phase 4 (upgradeable multiblocks): built; 187 GameTests and the JUnit bonus tests green locally; under review.
+- Phase 4 (upgradeable multiblocks): done. Reviewed; fixes applied (194 GameTests, JUnit green).
+- Phase 5 (test world, manual test list): built; under review.
 - Branch: `claude/gifted-hawking-pmc94i` (one branch for all five phases, one PR at the end).
 
 ## How to run things (from the repository root)
@@ -207,3 +208,30 @@ frame voltage; only inputs and output space limit parallels. Recorded as decisio
   mixed frames; breaking and rebuilding; module slot rules; retrofit up and down; recipe filters; the lock;
   saving; registration vs design; and the simulator's 75 recipe cases run in game).
 - JUnit: the bonus calculator matches all 1,632 simulator cases and the 75 recipe cases.
+
+### Phase 4 review (independent agent) and what changed
+- **Voltage gate (blocker).** GTM's own voltage check divides a recipe's EU/t by its parallel count. With free
+  parallels that let, say, a 4-segment steel machine run a 120 EU/t MV recipe. Our modifier now checks the
+  recipe's tier against the frame-capped machine tier before anything else. GameTest added.
+- **Modules dropped on breaking (blocker).** Breaking the controller now drops its modules. GameTest added.
+- **Lubricant and parallels.** The batch bus's lubricant is now counted when GTM works out how many
+  parallels fit, so too little lubricant runs fewer parallels instead of nothing. GameTest added.
+- **Changes while idle.** GTM reruns its last recipe without re-running modifiers unless told the recipe
+  changed; module changes and data reloads now tell it. GameTest added.
+- **Segment count no longer read from GTM's shared pattern.** It's counted from this controller's own
+  match result (one core per segment). The spike's "read the shared count under a lock" approach wasn't
+  safe against the client's multiblock preview, which reads the same pattern without the lock. The CLAUDE.md
+  "lessons from spike 1" line about this is now out of date: the count comes from the core blocks.
+- **Recipe filter** moved into GTM's recipe search (filtered recipes are never candidates), cached per recipe.
+- **Retrofit**: refused while the machine is running a recipe (the conversion briefly unforms it, which would
+  lose the recipe), refused right after loading until the structure has been re-checked, and one frame at a
+  time (the design says "kits of the next frame"; downgrades one step down). Kits in the off-hand count.
+- **Smaller fixes**: module slots hold one module each; frame names are translated in messages; a lock in a
+  slot the frame can't use is cleared; the client (which doesn't receive the server's upgrade data) still
+  recognises modules and kits; the simulator and Java never go below 1 tick (as GTM).
+- **Tests added**: over-cap machines run at the cap (17 segments, stainless: 16 parallels); mixed casings and
+  mixed frame boxes, each with a positive control; saved upgrades loaded back; preview fallback limits match
+  the data.
+- **Known limits, not fixed**: a dedicated server's clients don't get the upgrade data, so the JEI multiblock
+  preview uses fallback hatch limits and shows only steel blocks (single-player is unaffected). `/reload`
+  applies new data to the next recipe but doesn't re-check formed structures until a block changes.

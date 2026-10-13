@@ -114,7 +114,7 @@ public final class BonusCalculator {
         if (b.tier() < recipeTier(recipeEut)) return null;
         if (b.locked() && !isLockedRecipe) return null;
         double dmul = b.duration() * (b.locked() ? b.lockDuration() : 1);
-        long ticksMod = dmul == 1 ? recipeTicks : (long) (recipeTicks * dmul);
+        long ticksMod = dmul == 1 ? recipeTicks : Math.max(1, (long) (recipeTicks * dmul));
         long eutMod = b.energy() == 1 ? recipeEut : (long) (recipeEut * b.energy());
         int rt = recipeTier(eutMod);
         int n = Math.max(0, b.tier() - rt - (rt == 0 ? 1 : 0));

@@ -36,7 +36,7 @@ public final class UpgradePattern {
             "fluid_output_hatch", PartAbility.EXPORT_FLUIDS);
 
     /** Hatch limits when no data is loaded yet (a client building a preview); the data's values are the real ones. */
-    private static final Map<String, int[]> PREVIEW_LIMITS = Map.of(
+    static final Map<String, int[]> PREVIEW_LIMITS = Map.of(
             "maintenance", new int[] { 1, 1 }, "energy_input", new int[] { 1, 2 }, "item_input_bus", new int[] { 1, 6 },
             "item_output_bus", new int[] { 1, 2 }, "fluid_input_hatch", new int[] { 0, 2 }, "fluid_output_hatch", new int[] { 0, 1 });
 
@@ -59,7 +59,7 @@ public final class UpgradePattern {
                 .aisleRepeatable(1, maxBuilt, "CCC", "CKC", "CCC")
                 .aisle("FHF", "HHH", "FHF")
                 .where('X', controller(blocks(def.getBlock())))
-                .where('K', blocks(core))
+                .where('K', FramePredicates.core(core))
                 .where('C', FramePredicates.casing())
                 .where('F', FramePredicates.frameBox())
                 .where('H', hatch)

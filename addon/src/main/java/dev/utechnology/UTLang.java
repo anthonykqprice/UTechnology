@@ -29,6 +29,11 @@ public final class UTLang {
         lang("utechnology.display.ignored", "Not working: %s");
         lang("utechnology.display.locked", "Locked to: %s");
         lang("utechnology.gui.modules", "Modules");
+        lang("utechnology.retrofit.one_step", "Retrofit one frame at a time: use kits of the frame just above or below %s");
+        lang("utechnology.retrofit.busy", "Wait until the machine finishes its recipe");
+        lang("utechnology.frame.steel", "Steel");
+        lang("utechnology.frame.aluminium", "Aluminium");
+        lang("utechnology.frame.stainless_steel", "Stainless Steel");
     }
 
     private static void lang(String key, String value) {

@@ -37,6 +37,14 @@ public final class UTItems {
     public static final ItemEntry<Item> EFFICIENCY_COIL = item("efficiency_coil", "Efficiency Coil", "gtceu:item/mv_field_generator", 16);
     public static final ItemEntry<Item> BATCH_BUS = item("batch_bus", "Batch Bus", "gtceu:item/hv_conveyor_module", 16);
 
+    public static boolean isModule(Item item) {
+        return item == SPECIALIZATION_LOCK.get() || item == EFFICIENCY_COIL.get() || item == BATCH_BUS.get();
+    }
+
+    public static boolean isKit(Item item) {
+        return item == STEEL_RETROFIT_KIT.get() || item == ALUMINIUM_RETROFIT_KIT.get() || item == STAINLESS_STEEL_RETROFIT_KIT.get();
+    }
+
     public static void init() {}
 
     private UTItems() {}

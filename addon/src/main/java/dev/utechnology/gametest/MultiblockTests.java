@@ -46,7 +46,7 @@ public class MultiblockTests {
 
     // ---------------------------------------------------------------- structure
 
-    /** Every frame at every length from 1 to the largest cap, plus over-cap lengths (form, run at the cap). */
+    /** Every frame at every length from 1 to the largest cap, plus over-cap lengths (they form and count the cap). */
     @GameTestGenerator
     public static Collection<TestFunction> everyFrameAndLength() {
         List<TestFunction> out = new ArrayList<>();
@@ -84,14 +84,36 @@ public class MultiblockTests {
         return out;
     }
 
-    @GameTest(template = "long", timeoutTicks = 200)
-    public static void mixedFramesDontForm(GameTestHelper h) {
+    /** A casing of another frame stops it forming; putting the right one back forms it (positive control). */
+    @GameTest(template = "long", timeoutTicks = 400)
+    public static void mixedCasingsDontForm(GameTestHelper h) {
         var r = Rig.build(h, CTRL, "turning_line", "steel", 3, Hatches.FRONT);
-        h.setBlock(r.segmentCore(2).east(), Rig.frame("aluminium").casing());
-        h.runAfterDelay(120, () -> {
-            if (r.controller.isFormed()) throw new GameTestAssertException("formed with mixed frames");
-            h.succeed();
-        });
+        BlockPos p = r.segmentCore(2).east();
+        h.startSequence()
+                .thenWaitUntil(() -> r.assertFormed("steel", 3, 3))
+                .thenExecute(() -> h.setBlock(p, Rig.frame("aluminium").casing()))
+                .thenWaitUntil(() -> { if (r.controller.isFormed()) throw new GameTestAssertException("formed with mixed casings"); })
+                .thenExecute(() -> {
+                    var err = r.controller.getMultiblockState().error;
+                    if (err == null || !(err.getErrorInfo().getString().contains("same frame") || err.getErrorInfo().getString().contains("mixed_frames")))
+                        throw new GameTestAssertException("expected the mixed-frames error, got " + (err == null ? null : err.getErrorInfo().getString()));
+                    h.setBlock(p, Rig.frame("steel").casing());
+                })
+                .thenWaitUntil(() -> r.assertFormed("steel", 3, 3))
+                .thenSucceed();
+    }
+
+    @GameTest(template = "long", timeoutTicks = 400)
+    public static void mixedFrameBoxesDontForm(GameTestHelper h) {
+        var r = Rig.build(h, CTRL, "turning_line", "steel", 2, Hatches.FRONT);
+        BlockPos corner = r.endCenter().offset(1, 1, 0);
+        h.startSequence()
+                .thenWaitUntil(() -> r.assertFormed("steel", 2, 2))
+                .thenExecute(() -> h.setBlock(corner, Rig.frame("aluminium").frameBox()))
+                .thenWaitUntil(() -> { if (r.controller.isFormed()) throw new GameTestAssertException("formed with mixed frame boxes"); })
+                .thenExecute(() -> h.setBlock(corner, Rig.frame("steel").frameBox()))
+                .thenWaitUntil(() -> r.assertFormed("steel", 2, 2))
+                .thenSucceed();
     }
 
     @GameTest(template = "long", timeoutTicks = 400)
@@ -298,7 +320,10 @@ public class MultiblockTests {
                         .thenExecute(() -> {
                             var logic = r.controller.getRecipeLogic();
                             if (c.get("expect").isJsonNull()) {
-                                if (logic.isWorking()) throw new GameTestAssertException("ran a recipe the simulator says it can't");
+                                if (logic.isWorking() || logic.getLastRecipe() != null)
+                                    throw new GameTestAssertException("ran a recipe the simulator says it can't");
+                                if (r.input.getInventory().storage.getStackInSlot(0).isEmpty())
+                                    throw new GameTestAssertException("inputs were used");
                                 return;
                             }
                             JsonObject e = c.getAsJsonObject("expect");
@@ -373,20 +398,134 @@ public class MultiblockTests {
                 .thenSucceed();
     }
 
-    /** Frame, segments, modules and the lock are saved with the machine. */
-    @GameTest(template = "long", timeoutTicks = 400)
+    /** Frame, segments, modules and the lock are saved with the machine and loaded back. */
+    @GameTest(template = "long", timeoutTicks = 600)
     public static void upgradesArePersisted(GameTestHelper h) {
-        var r = Rig.build(h, CTRL, "turning_line", "aluminium", 4, Hatches.FRONT);
+        var r = Rig.build(h, CTRL, "turning_line", "steel", 2, Hatches.FRONT);
+        net.minecraft.nbt.CompoundTag[] saved = { null };
         h.startSequence()
-                .thenWaitUntil(() -> r.assertFormed("aluminium", 4, 4))
+                .thenWaitUntil(() -> r.assertFormed("steel", 2, 2))
                 .thenExecute(() -> {
-                    r.controller.getModules().setStackInSlot(0, module("efficiency_coil"));
+                    r.controller.getModules().setStackInSlot(0, module("specialization_lock"));
+                    feed(r, designRecipe("rod_steel"), 1, 0);
+                })
+                .thenWaitUntil(() -> { if (r.controller.getLockedRecipe() == null) throw new GameTestAssertException("not locked"); })
+                .thenExecute(() -> {
                     var be = h.getLevel().getBlockEntity(h.absolutePos(CTRL));
-                    String nbt = be.saveWithoutMetadata().toString();
-                    for (String want : new String[] { "builtSegments:4", "frameKey:\"aluminium\"", "utechnology:efficiency_coil" })
-                        if (!nbt.contains(want)) throw new GameTestAssertException("not saved: " + want + " in " + nbt);
+                    saved[0] = be.saveWithoutMetadata();
+                    // change everything, then load the saved state back into the machine
+                    String locked = r.controller.getLockedRecipe().toString();
+                    r.controller.removeLastModule();
+                    if (r.controller.getLockedRecipe() != null) throw new GameTestAssertException("lock not cleared");
+                    be.load(saved[0]);
+                    if (!r.controller.getModules().getStackInSlot(0).is(module("specialization_lock").getItem()))
+                        throw new GameTestAssertException("module not restored");
+                    if (r.controller.getLockedRecipe() == null || !r.controller.getLockedRecipe().toString().equals(locked))
+                        throw new GameTestAssertException("lock not restored");
+                    if (!r.controller.getFrameKey().equals("steel")) throw new GameTestAssertException("frame not restored");
+                    String nbt = saved[0].toString();
+                    if (!nbt.contains("builtSegments:2")) throw new GameTestAssertException("segments not saved: " + nbt);
                 })
                 .thenSucceed();
+    }
+
+    /** Breaking the controller drops its modules. */
+    @GameTest(template = "long", timeoutTicks = 400)
+    public static void modulesDropWhenTheControllerBreaks(GameTestHelper h) {
+        var r = Rig.build(h, CTRL, "turning_line", "aluminium", 2, Hatches.FRONT);
+        h.startSequence()
+                .thenWaitUntil(() -> r.assertFormed("aluminium", 2, 2))
+                .thenExecute(() -> {
+                    r.controller.getModules().setStackInSlot(0, module("efficiency_coil"));
+                    h.destroyBlock(CTRL);
+                })
+                .thenExecute(() -> h.assertItemEntityPresent(module("efficiency_coil").getItem(), CTRL, 3))
+                .thenSucceed();
+    }
+
+    /** Free parallels must not let a frame run recipes above its tier (GTM's check divides EU/t by parallels). */
+    @GameTest(template = "long", timeoutTicks = 400)
+    public static void steelFrameRefusesMvRecipeAtAnyLength(GameTestHelper h) {
+        var r = Rig.build(h, CTRL, "component_assembler", "steel", 4, Hatches.FRONT);
+        JsonObject motorHv = designRecipe("motor_hv");
+        h.startSequence()
+                .thenWaitUntil(() -> r.assertFormed("steel", 4, 4))
+                .thenExecute(() -> feed(r, motorHv, 4, 0))
+                .thenIdle(100)
+                .thenExecute(() -> {
+                    if (r.controller.getRecipeLogic().isWorking() || r.outputCount(BuiltInRegistries.ITEM.get(new ResourceLocation("gtceu:hv_electric_motor"))) > 0)
+                        throw new GameTestAssertException("a steel (LV) frame ran the 120 EU/t HV motor recipe");
+                })
+                .thenSucceed();
+    }
+
+    /** An over-cap machine runs at its frame's cap: 17 segments on stainless steel = 16 parallels. */
+    @GameTest(template = "long", timeoutTicks = 600)
+    public static void overCapRunsAtTheCap(GameTestHelper h) {
+        var r = Rig.build(h, CTRL, "component_assembler", "stainless_steel", 17, Hatches.FRONT);
+        h.startSequence()
+                .thenWaitUntil(() -> r.assertFormed("stainless_steel", 17, 16))
+                .thenExecute(() -> feed(r, designRecipe("motor_lv"), 20, 0))
+                .thenWaitUntil(() -> { if (!r.controller.getRecipeLogic().isWorking()) throw new GameTestAssertException("not working"); })
+                .thenExecute(() -> {
+                    int p = r.controller.getRecipeLogic().getLastRecipe().parallels;
+                    if (p != 16) throw new GameTestAssertException("parallels " + p + " != 16 (the cap)");
+                })
+                .thenSucceed();
+    }
+
+    /** The batch bus's lubricant limits parallels: lubricant for 3 of 6 possible parallels runs 3. */
+    @GameTest(template = "long", timeoutTicks = 600)
+    public static void lubricantLimitsParallels(GameTestHelper h) {
+        var r = Rig.build(h, CTRL, "turning_line", "stainless_steel", 3, Hatches.FRONT);
+        h.startSequence()
+                .thenWaitUntil(() -> r.assertFormed("stainless_steel", 3, 3))
+                .thenExecute(() -> {
+                    r.controller.getModules().setStackInSlot(0, module("batch_bus"));
+                    feed(r, designRecipe("rod_steel"), 6, 0);
+                    r.fluid("gtceu:lubricant", 30);
+                })
+                .thenWaitUntil(() -> { if (!r.controller.getRecipeLogic().isWorking()) throw new GameTestAssertException("not working"); })
+                .thenExecute(() -> {
+                    int p = r.controller.getRecipeLogic().getLastRecipe().parallels;
+                    if (p != 3) throw new GameTestAssertException("parallels " + p + " != 3 (lubricant for 3)");
+                })
+                .thenSucceed();
+    }
+
+    /** A module installed while the machine is idle applies to its next recipe. */
+    @GameTest(template = "long", timeoutTicks = 800)
+    public static void moduleChangeAppliesWhenIdle(GameTestHelper h) {
+        var r = Rig.build(h, CTRL, "turning_line", "aluminium", 1, Hatches.FRONT);
+        JsonObject rod = designRecipe("rod_steel");
+        h.startSequence()
+                .thenWaitUntil(() -> r.assertFormed("aluminium", 1, 1))
+                .thenExecute(() -> feed(r, rod, 1, 0))
+                .thenWaitUntil(() -> { if (r.outputCount(BuiltInRegistries.ITEM.get(new ResourceLocation("gtceu:steel_rod"))) < 1) throw new GameTestAssertException("first rod"); })
+                .thenIdle(10)
+                .thenExecute(() -> {
+                    r.controller.installModule(module("efficiency_coil"), null);
+                    feed(r, rod, 1, 0);
+                })
+                .thenWaitUntil(() -> { if (!r.controller.getRecipeLogic().isWorking()) throw new GameTestAssertException("not working"); })
+                .thenExecute(() -> {
+                    // 112 ticks x 1.25 = 140, one overclock on MV: 70 ticks at 36 EU/t (16 x 0.6 = 9, x4)
+                    var run = r.controller.getRecipeLogic().getLastRecipe();
+                    if (run.duration != 70 || RecipeHelper.getRealEUt(run).voltage() != 36)
+                        throw new GameTestAssertException("coil not applied: " + run.duration + " ticks, " + RecipeHelper.getRealEUt(run).voltage() + " EU/t");
+                })
+                .thenSucceed();
+    }
+
+    /** The preview's fallback hatch limits (used before data loads) equal the design's. */
+    @GameTest(template = "empty")
+    public static void previewLimitsMatchData(GameTestHelper h) {
+        List<String> problems = new ArrayList<>();
+        UpgradeData.get().specs().forEach((k, spec) -> spec.hatchLimits().forEach((kind, mm) -> {
+            int[] p = dev.utechnology.upgrade.UpgradePatternAccess.previewLimits().get(kind);
+            if (p == null || p[0] != mm[0] || p[1] != mm[1]) problems.add(k + " " + kind);
+        }));
+        DesignTests.report(h, "preview limits", problems);
     }
 
     // ---------------------------------------------------------------- performance
