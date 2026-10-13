@@ -1,0 +1,105 @@
+// UTechnology addon for GregTech CEu Modern 7.5.3 (Forge 1.20.1).
+// Build setup adapted from GregTechCEu/GregTech-Addon-Template (LGPLv3).
+plugins {
+    id 'net.neoforged.moddev.legacyforge' version '2.0.91'
+}
+
+version = mod_version
+group = maven_group
+base { archivesName = archives_base_name }
+java { toolchain.languageVersion = JavaLanguageVersion.of(17) }
+
+repositories {
+    mavenCentral()
+    exclusiveContent {
+        forRepository { maven { url = 'https://maven.gtceu.com' } }
+        filter { includeGroup 'com.gregtechceu.gtceu' }
+    }
+    exclusiveContent { // LDLib, Configuration
+        forRepository { maven { url = 'https://maven.firstdark.dev/snapshots/' } }
+        filter { includeGroup 'com.lowdragmc.ldlib'; includeGroup 'dev.toma.configuration' }
+    }
+    exclusiveContent {
+        forRepository { maven { url = 'https://maven.tterrag.com/' } }
+        filter { includeGroup 'com.tterrag.registrate' }
+    }
+    exclusiveContent { // KubeJS, Rhino, Architectury: the exact files the pack uses
+        forRepository { maven { url = 'https://api.modrinth.com/maven' } }
+        filter { includeGroup 'maven.modrinth' }
+    }
+}
+
+legacyForge {
+    version = "${minecraft_version}-${forge_version}"
+    parchment {
+        mappingsVersion = project.mapping_version
+        minecraftVersion = project.minecraft_version
+    }
+    runs {
+        configureEach {
+            systemProperty 'forge.logging.console.level', 'info'
+            systemProperty 'forge.enabledGameTestNamespaces', project.mod_id
+        }
+        server {
+            server()
+            gameDirectory = project.file('run-server')
+            programArguments.addAll('--nogui')
+        }
+        gameTestServer {
+            type = 'gameTestServer'
+            gameDirectory = project.file('run-gametest')
+        }
+    }
+    mods {
+        "${mod_id}" { sourceSet(sourceSets.main) }
+    }
+}
+
+dependencies {
+    compileOnly 'org.jetbrains:annotations:26.0.1'
+    compileOnly 'org.projectlombok:lombok:1.18.24'
+    annotationProcessor 'org.projectlombok:lombok:1.18.24'
+
+    modImplementation("com.gregtechceu.gtceu:gtceu-${minecraft_version}:${gtceu_version}:slim") { transitive = false }
+    modImplementation("com.lowdragmc.ldlib:ldlib-forge-${minecraft_version}:${ldlib_version}") { transitive = false }
+    modImplementation("com.tterrag.registrate:Registrate:${registrate_version}")
+    modImplementation("dev.toma.configuration:configuration-forge-${minecraft_version}:${configuration_version}")
+
+    modRuntimeOnly("maven.modrinth:kubejs:${kubejs_modrinth}") { transitive = false }
+    modRuntimeOnly("maven.modrinth:rhino:${rhino_modrinth}") { transitive = false }
+    modRuntimeOnly("maven.modrinth:architectury-api:${architectury_modrinth}") { transitive = false }
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test', Test) { useJUnitPlatform() }
+
+// GameTests and the dev server load the pack's KubeJS scripts and configs, exactly as the pack ships them.
+['run-gametest', 'run-server'].each { runDir ->
+    def name = runDir.replace('run-', '').capitalize()
+    def kjs = tasks.register("syncKubeJS${name}", Sync) {
+        from rootProject.file('../pack/kubejs')
+        into project.file("${runDir}/kubejs")
+        preserve { include 'config/**', 'exported/**', 'README.txt' } // written by KubeJS itself
+    }
+    def cfg = tasks.register("copyPackConfig${name}", Copy) {
+        from rootProject.file('../pack/config')
+        into project.file("${runDir}/config")
+    }
+    tasks.matching { it.name == (runDir == 'run-gametest' ? 'runGameTestServer' : 'runServer') }.configureEach {
+        dependsOn kjs, cfg
+    }
+}
+tasks.matching { it.name == 'runServer' }.configureEach { standardInput = System.in }
+
+tasks.named('processResources', ProcessResources).configure {
+    var props = [mod_id: mod_id, version: version, mod_name: mod_name, mod_license: mod_license,
+                 gtceu_version: gtceu_version]
+    inputs.properties(props)
+    filesMatching('META-INF/mods.toml') { expand props }
+}
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release.set(17)
+}

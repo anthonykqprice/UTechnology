@@ -946,7 +946,8 @@
     "fluid_input_hatch": {
      "min": 0,
      "max": 2,
-     "only_if": "machine uses fluids"
+     "note": "every machine accepts them",
+     "so a batch bus can get lubricant": null
     },
     "fluid_output_hatch": {
      "min": 0,
@@ -1018,7 +1019,7 @@
    "efficiency_coil": {
     "unlocked_at": "MV",
     "effect": "25% less energy per craft; recipes take 25% longer.",
-    "energy": 0.75,
+    "energy": 0.6,
     "duration": 1.25
    },
    "batch_bus": {
@@ -1066,6 +1067,16 @@
     "frame_stainless_steel": 1
    },
    "out": 2
+  },
+  {
+   "id": "retrofit_kit_steel",
+   "builds": "retrofit_kit",
+   "frame": "steel",
+   "note": "Converts 8 casings to steel (used to downgrade). Costs the same as 8 new casings.",
+   "in": {
+    "plate_steel": 24,
+    "frame_steel": 4
+   }
   },
   {
    "id": "retrofit_kit_aluminium",

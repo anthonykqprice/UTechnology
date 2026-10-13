@@ -42,7 +42,7 @@ framework:
       energy_input: { min: 1, max: 2 }
       item_input_bus: { min: 1, max: 6 }
       item_output_bus: { min: 1, max: 2 }
-      fluid_input_hatch: { min: 0, max: 2, only_if: machine uses fluids }
+      fluid_input_hatch: { min: 0, max: 2, note: every machine accepts them, so a batch bus can get lubricant }
       fluid_output_hatch: { min: 0, max: 1, only_if: machine outputs fluids }
     voltage: >-
       The machine's max voltage is capped at its frame's max_voltage, whatever its
@@ -102,7 +102,7 @@ framework:
     efficiency_coil:
       unlocked_at: MV
       effect: 25% less energy per craft; recipes take 25% longer.
-      energy: 0.75
+      energy: 0.6        # EU/t multiplier; with duration 1.25 each craft uses 0.75 of the energy
       duration: 1.25
     batch_bus:
       unlocked_at: HV
@@ -189,6 +189,12 @@ builds:
     in: { plate_stainless_steel: 6, frame_stainless_steel: 1 }
     out: 2
 
+  - id: retrofit_kit_steel
+    builds: retrofit_kit
+    frame: steel
+    note: Converts 8 casings to steel (used to downgrade). Costs the same as 8 new casings.
+    in: { plate_steel: 24, frame_steel: 4 }
+
   - id: retrofit_kit_aluminium
     builds: retrofit_kit
     frame: aluminium
@@ -230,6 +236,25 @@ stock_overlap:
     switches between two recipe types, which our rules don't allow; disable it too,
     or keep it cutter-only if that's possible without code. Decide the rest of the
     Large multiblocks when we design those machine types.
+
+decisions:
+  - id: efficiency-coil-energy
+    decided: 2026-10-13
+    decision: >-
+      The efficiency coil cuts energy per craft by 25%: EU/t x0.6 and duration x1.25.
+    why: >-
+      Matches the module's description. The simulator first applied x0.75 to EU/t,
+      which with the longer duration saved only about 6% per craft.
+  - id: fluid-hatches-everywhere
+    decided: 2026-10-13
+    decision: Every upgradeable multiblock accepts 0 to 2 fluid input hatches.
+    why: >-
+      The batch bus consumes lubricant, so machines whose recipes use no fluids
+      (Wire Drawing Line, Turning Line) still need a way to take it in.
+  - id: steel-retrofit-kit
+    decided: 2026-10-13
+    decision: Add a steel retrofit kit (24 steel plates, 4 steel frames) for downgrading to steel.
+    why: Downgrades use kits of the lower frame; without a steel kit nothing could go back to steel.
 
 open_questions:
   - Machine names are placeholders; rename freely before IDs are fixed.

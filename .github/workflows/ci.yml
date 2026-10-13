@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  design:
+    name: Simulator, generator and validator
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install pyyaml==6.0.2
+      - name: Simulator tests
+        run: node design/sim/test.js
+      - name: Generated files are up to date and the design is valid
+        run: tools/check.sh
+
+  pack:
+    name: Pack export (packwiz)
+    needs: addon
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.24' }
+      - name: Install packwiz (pinned)
+        run: go install github.com/packwiz/packwiz@v0.0.0-20260906154125-ef87d964f8cb
+      - name: Index is up to date
+        working-directory: pack
+        run: |
+          ~/go/bin/packwiz refresh
+          git diff --exit-code -- .
+      - uses: actions/download-artifact@v4
+        with: { name: addon, path: addon-artifact }
+      - name: Export with the addon jar
+        run: tools/export-pack.sh "$(ls addon-artifact/build/libs/utechnology-*.jar | head -1)" UTechnology.mrpack
+      - uses: actions/upload-artifact@v4
+        with: { name: modpack, path: UTechnology.mrpack }
+
+  addon:
+    name: Addon build and GameTests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build, unit tests and GameTests
+        working-directory: addon
+        run: ./gradlew --no-daemon build runGameTestServer
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: addon
+          path: |
+            addon/build/libs/*.jar
+            addon/run-gametest/logs/latest.log

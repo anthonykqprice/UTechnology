@@ -35,12 +35,12 @@ near(r.machineTime, 1.25, "locked CA");
 r = simulate(data, [{ type: "assembly_hall", frame: "steel", segments: 1, modules: [], count: 1 }], [{ item: "cable_tin_single", qty: 1 }, { item: "motor_lv", qty: 1 }], S);
 assert(r.errors.some(x => x.recipe === "motor_lv")); assert(!r.errors.some(x => x.recipe === "cable_tin_single"));
 
-// 6. efficiency coil: 0.75 energy, 1.25 duration; steel frame can't take it (MV module)
+// 6. efficiency coil: EU/t x0.6, duration x1.25 (0.75 energy per craft); steel frame can't take it (MV module)
 G = resolveGroup(data, { type: "turning_line", frame: "steel", segments: 2, modules: ["efficiency_coil"], count: 1 });
 assert(G.warnings.some(w => /needs at least a MV frame/.test(w)));
 r = simulate(data, [{ type: "turning_line", frame: "aluminium", segments: 1, modules: ["efficiency_coil"], count: 1 }], [{ item: "rod_steel", qty: 1 }], S);
-// lathe 16 EU/t is LV; MV machine -> 1 OC: duration 5.6*1.25/2, EU/t 16*0.75*4
-near(r.total, 5.6 * 1.25 / 2, "eff time"); near(r.energy, 16 * 0.75 * 4 * (5.6 * 1.25 / 2) * 20, "eff energy");
+// lathe 16 EU/t is LV; MV machine -> 1 OC: duration 5.6*1.25/2, EU/t 16*0.6*4
+near(r.total, 5.6 * 1.25 / 2, "eff time"); near(r.energy, 16 * 0.6 * 4 * (5.6 * 1.25 / 2) * 20, "eff energy");
 
 // 7. batch bus doubles parallels with upkeep
 G = resolveGroup(data, { type: "component_assembler", frame: "stainless_steel", segments: 16, modules: ["batch_bus"], count: 1 });
