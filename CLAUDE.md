@@ -13,9 +13,9 @@ It is not GTNH-level grind.
 - Core mod: GregTech CEu Modern, latest 1.20.1 release (look it up; don't guess version numbers)
 - Recipes and data: KubeJS (+ GTM's KubeJS integration) for recipe changes and custom materials.
   Generate these from the design data files in design/ wherever possible.
-- Machines, research and recipe bonuses: a Java addon for GregTech Modern (Forge 1.20.1, Java 17).
+- Machines, upgrades and recipe bonuses: a Java addon for GregTech Modern (Forge 1.20.1, Java 17).
   Anything that runs during play goes here, not in KubeJS.
-- Quests: FTB Quests, for guidance only. Progression systems (research, unlocks) are never built on quests.
+- Quests: FTB Quests, for guidance only. Progression systems (upgrades, unlocks) are never built on quests.
 - Pack management: packwiz. Every mod is added through packwiz, never by dropping jars in manually
 - Start type: skyblock, like Star Technology  <-- change this line if I want a normal overworld start
 
@@ -30,29 +30,52 @@ It is not GTNH-level grind.
 - Design files live in design/. The slice recipe files (e.g. design/slice1-mechanical.yaml)
   are the source of truth for recipes; the simulator and generated KubeJS both read them.
   Decisions and their reasons are recorded in each file's decisions section.
-- Upgrades are global research, not per-machine modules. Research multiblocks consume items,
-  power and time through ordinary GregTech recipes. Unlocks apply to all of a team's machines.
-  Research is team-based through FTB Teams (a solo player is a team of one); machines find their
-  team through their owner.
-  No mutually exclusive branches: cost and time are the limits. Branches end in repeatable nodes.
-- AE2 is the logistics tool for the whole pack. Design every recipe for autocrafting: within one
-  machine type, no two recipes may accept the same set of inputs, and avoid non-consumed inputs
-  (programmed circuits, catalysts) where possible. Research prerequisites live in the research
-  tree, never as items a machine must hold.
-- Factories should grow physically: research raises caps (e.g. multiblock segments), players
-  build out to use them. One multiblock per core machine type; no recipe-type switching.
+- Machines are upgraded individually, and upgrades are optional. A multiblock's frame (casing
+  material) sets its max voltage, segment cap and module slots. Players upgrade a frame with
+  retrofit kits (right-click the controller; one kit per 8 casings; old casings are returned), add
+  segments by building them, and install a few modules with real tradeoffs. A basic machine runs
+  every recipe its voltage allows, so unupgraded machines stay useful for passive and low-volume
+  work. Upgrade effort is the intended soft limit on machine count. There is no global research
+  tree (design/research-v1.yaml is superseded and kept for reference only).
+- AE2 is the logistics tool for the whole pack. Recipe conflicts (recipes in one machine type that
+  accept the same inputs) are allowed, as in stock GregTech; working around them is part of the
+  game. But every conflict must be solvable with GregTech's standard tools (programmed circuits,
+  distinct input buses), so a player never needs blocking mode with multiplied patterns. Then a
+  pattern provider in non-blocking mode feeding a distinct bus fills the machine's parallels, and
+  upgrading a machine's parallels never requires re-encoding patterns.
+  Conflicts in our own recipes are deliberate: the validator lists every conflict so each one is
+  a choice. Keep each recipe's number of distinct item inputs within what the input buses at that
+  tier can hold.
+- Factories should grow physically: frames raise segment caps, and players build out to use them.
+  One multiblock per core machine type; no recipe-type switching.
 
 ## Engineering priorities
 - Stability and performance come first. Writing more code is fine; fragile or slow code is not.
 - No per-tick or per-recipe logic in KubeJS. Hot paths live in the Java addon.
-- Cache research bonuses per team and recompute only when something unlocks. Machines read the
-  cached value when a recipe starts.
-- Research progress lives in versioned world save data. Node and item IDs never change once released.
-- The research tree, costs and effects are data (data pack JSON generated from design/), so
-  rebalancing never needs a recompile.
+- A machine's upgrades (frame, segment count, modules) live on the machine and are persisted with
+  it. Compute its bonuses when the structure forms or a module changes, never per recipe.
+- Frames, segment caps, modules and their effects are data (data pack JSON generated from
+  design/), so rebalancing never needs a recompile. Item and block IDs never change once released.
 - The addon's bonus math must match the simulator. Cover it with automated tests generated from
   the design data.
 - Performance-test large multiblocks (structure checks) before raising segment caps.
+
+## Lessons from spike 1 (docs/spike-1.md)
+- Build on GTM 7.5.3 (the newest 1.20.1 release). The 1.20.1 branch head is the unreleased 8.0, which
+  moves the pattern API to com.gregtechceu.gtceu.api.multiblock.pattern. Keep all pattern and
+  segment-count code in one base class so the 8.0 migration touches one place.
+- Segments use FactoryBlockPattern.aisleRepeatable and BlockPattern.getFormedRepetitionCount. The
+  count is shared by every controller of a type: read it inside synchronized (pattern) and copy it
+  per controller. Persist the copied count.
+- GTM bug: a limited hatch (setMaxGlobalLimited) in the aisle right after a repeatable aisle is
+  counted several times, so the structure forms only at some lengths. Never put limited hatches
+  there, or make that aisle's first checked block differ from the segment's.
+- Upgradeable multiblocks set alwaysTryModifyRecipe(true), so a module or segment change applies on
+  the next recipe, not only after the machine idles. Modifier order: parallel, then modules, then
+  overclock.
+- If team features ever return: resolve a machine's team with FTBTeamsAPI
+  TeamManager.getTeamForPlayerID(ownerUUID) (the effective team); FTBOwner.getUUID()/getTeam()
+  return the personal team. Production code uses only the FTBTeamsAPI.
 
 ## Rules for adding mods
 - Prefer Modrinth. Use CurseForge only if a mod isn't on Modrinth, and tell me when you do.
@@ -68,11 +91,16 @@ It is not GTNH-level grind.
   and credit them if we adapt something.
 - GTM wiki/docs for the KubeJS API, and the GTM source (GregTechCEu/GregTech-Modern, branch 1.20.1)
   for the Java API. Check them instead of inventing method names.
-- Before writing a research tree screen from scratch, check whether an existing 1.20.1 Forge mod
-  already provides one we could build on.
 
 ## Workflow
-- Propose a plan and wait for my approval before large changes (new mods, recipe overhauls).
+- I don't review code. Make engineering decisions yourself, and explain them in plain language in
+  docs/ so I can follow what was built and why.
+- Ask me only about gameplay or design questions the design files don't answer, or before anything
+  irreversible. Don't wait for approval on engineering plans, mod choices within the rules above,
+  or code structure.
+- Because nobody reviews the code, verification is automated: tests and GameTests for every
+  feature, CI that must pass, the validator, and an independent review of each finished piece of
+  work by a separate agent that hasn't seen it being written. Fix what the review finds.
 - Commit to git after each working change, with a clear message.
 - I'll test in-game (Prism Launcher) and paste crash reports or latest.log. Diagnose from the
   log; don't guess.

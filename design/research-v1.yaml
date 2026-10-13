@@ -1,0 +1,187 @@
+# SUPERSEDED (2026-10-13). The pack uses per-machine upgrades instead of a global
+# research tree; see the per-machine-upgrades decision in slice1-mechanical.yaml.
+# Kept for reference only, because the findings on GTM's computation system
+# (gtm_basis below) may be useful later. Nothing reads or generates from this file.
+#
+# Research, first version (LV to HV prototype)
+
+meta:
+  version: 0.2-draft
+  changes_from_0.1: >-
+    No repeatable nodes. Research is paid in computation as well as items, using
+    GTM's own computation system, so research speeds up with more computation
+    instead of taking a fixed time.
+  applies_to: >-
+    Our multiblocks only (component assembler, wiremill, lathe, assembler,
+    computation array). Stock single-block GTM machines are unaffected in v1.
+
+# ---------------------------------------------------------------------------
+# Built on GTM's stock research system (checked in GTM 7.5.3 source)
+# ---------------------------------------------------------------------------
+gtm_basis:
+  - >-
+    Stock GTM research (LuV and up) runs Research Station recipes that need
+    computation, measured in CWU (compute work units). Computation comes from the
+    HPCA multiblock over optical fiber cables, through optical computation hatches
+    and the network switch. The interfaces are IOpticalComputationProvider and
+    IOpticalComputationReceiver.
+  - >-
+    A recipe marked "duration is total CWU" (GTRecipeBuilder.totalCWU) progresses
+    by the CWU actually drawn each tick, not by one tick at a time
+    (NotifiableComputationContainer.handleRecipeInner). Its CWU/t value is only the
+    minimum needed to run. So more computation makes research faster with no
+    built-in limit. That is the speed-up mechanic we want, and it already exists.
+  - >-
+    We don't use GTM's scanning, data sticks or data banks below LuV. We add
+    low-tier versions of the computation side only: a computation array multiblock,
+    and LV-HV optical computation hatches that implement GTM's interfaces, so our
+    machines can later connect to stock network switches and research stations.
+
+# ---------------------------------------------------------------------------
+# How research works
+# ---------------------------------------------------------------------------
+flow:
+  - >-
+    A research lab (multiblock) researches one node at a time. The player picks the
+    node in the lab's screen from the nodes their team can research. Each node has
+    exactly one lab recipe, and the lab only runs the recipe of its selected node,
+    so nodes with similar costs never conflict.
+  - >-
+    The node's recipe consumes its item cost when it starts, then needs computation
+    until it has received the node's total CWU. When it finishes, the node unlocks
+    for the lab owner's team.
+  - >-
+    Speeding up research means building more computation: a bigger computation
+    array, or more of them. Running more labs lets a team research several nodes at
+    once. One node can be in only one lab at a time.
+  - >-
+    The lab's recipe needs the node's tier voltage, so the lab's energy hatches gate
+    which tiers a team can research.
+  - Prerequisites live in the tree; a lab can select a node only when they're done.
+
+computation_array:
+  role: >-
+    Low-tier counterpart of the HPCA. Supplies CWU/t through an optical computation
+    transmitter hatch and optical fiber cable to a lab's receiver hatch.
+  growth: >-
+    Its segments hold computation components; more segments and higher-tier
+    components give more CWU/t. Its segment cap is raised by its research branch
+    like every other multiblock. Full structure spec comes with the multiblock specs.
+  upkeep: >-
+    Components draw power while supplying computation, so faster research costs
+    more power. Power is the practical limit on how fast research can go.
+  provisional_numbers:
+    cwut_per_component: { LV: 1, MV: 4, HV: 16 }
+    eut_per_cwut: 8      # power drawn per CWU/t supplied; tune in the simulator
+
+# ---------------------------------------------------------------------------
+# Effects: few types, simple math, identical in the addon and the simulator
+# ---------------------------------------------------------------------------
+effects:
+  segment_cap:
+    meaning: Maximum number of segments that count, per machine type.
+    combine: base + sum of increases
+    base: 2
+    rule: >-
+      A structure with more segments than its cap still forms. It runs with cap
+      parallels (or cap segments' worth of computation) and shows a "needs
+      research" warning, so players can build ahead.
+  duration:
+    meaning: Recipe duration multiplier.
+    combine: 1 - sum of reductions, never below the floor
+    floor: 0.5
+  energy:
+    meaning: EU/t multiplier.
+    combine: 1 - sum of reductions, never below the floor
+    floor: 0.5
+  unlock:
+    meaning: Enables a feature by name.
+  order: >-
+    Parallels (segments, up to the cap) first, then research duration and energy,
+    then overclocking. Specialization lock, when on, multiplies duration by 0.5
+    after research and before overclocking.
+
+# Research cost per tier. min_cwut is the computation needed to run at all;
+# total_cwu is the work. Hours at minimum = total_cwu / min_cwut / 72000 ticks.
+tier_cost:
+  LV: { min_cwut: 2,  total_cwu: 72000,   eut: 30,  hours_at_minimum: 0.5 }
+  MV: { min_cwut: 8,  total_cwu: 576000,  eut: 120, hours_at_minimum: 1.0 }
+  HV: { min_cwut: 32, total_cwu: 4608000, eut: 480, hours_at_minimum: 2.0 }
+
+# ---------------------------------------------------------------------------
+# Trunk: applies to all of the team's multiblocks
+# ---------------------------------------------------------------------------
+trunk:
+  - id: specialization
+    tier: LV
+    effect: { unlock: specialization_lock }
+    description: >-
+      Multiblocks get a specialization setting (screwdriver or controller UI). When
+      on, the machine locks to the next recipe it runs, runs only that recipe, and
+      runs it twice as fast. Turning it off unlocks it again.
+    items: { motor_lv: 16, circuit_lv: 16 }
+
+  - id: standardized_power
+    tier: MV
+    requires: [specialization]
+    effect: { energy: 0.10 }
+    items: { motor_mv: 32, cable_copper_single: 128 }
+
+  - id: precision_engineering
+    tier: HV
+    requires: [standardized_power]
+    effect: { duration: 0.10 }
+    items: { motor_hv: 48, bearing_hv: 96 }
+
+# ---------------------------------------------------------------------------
+# Branches: one per multiblock type, all built from the same template.
+# A branch ends at its last extension; there are no repeatable nodes. Past the
+# last cap, players expand by building more machines.
+# ---------------------------------------------------------------------------
+branch_template:
+  - id: "{machine}_extension_1"
+    tier: LV
+    effect: { segment_cap: 2 }        # 2 -> 4
+  - id: "{machine}_extension_2"
+    tier: MV
+    requires: ["{machine}_extension_1"]
+    effect: { segment_cap: 4 }        # 4 -> 8
+  - id: "{machine}_extension_3"
+    tier: HV
+    requires: ["{machine}_extension_2", precision_engineering]
+    effect: { segment_cap: 8 }        # 8 -> 16
+
+# Each branch pays with items from its own production chain, so researching a
+# machine pulls on the parts that machine is busiest with.
+branches:
+  component_assembler:
+    LV: { motor_lv: 32 }
+    MV: { motor_mv: 32, piston_mv: 32 }
+    HV: { motor_hv: 48, robot_arm_mv: 48 }
+  wiremill:
+    LV: { wire_copper_single: 256, motor_lv: 16 }
+    MV: { wire_cupronickel_double: 256, motor_mv: 32 }
+    HV: { wire_electrum_double: 384, motor_hv: 48 }
+  lathe:
+    LV: { rod_steel: 256, motor_lv: 16 }
+    MV: { rod_aluminium: 256, motor_mv: 32 }
+    HV: { rod_stainless_steel: 384, motor_hv: 48 }
+  assembler:
+    LV: { cable_tin_single: 256, motor_lv: 16 }
+    MV: { cable_copper_single: 256, motor_mv: 32 }
+    HV: { cable_gold_single: 384, motor_hv: 48 }
+  computation_array:
+    LV: { circuit_lv: 32, motor_lv: 16 }
+    MV: { circuit_mv: 64, motor_mv: 32 }
+    HV: { circuit_hv: 96, motor_hv: 48 }
+
+open_questions:
+  - >-
+    Segment cap: base 2 rising to 16 by HV. The spike measured structure checks as
+    cheap at 8 segments; 16 needs measuring before it ships.
+  - >-
+    Item costs: keep them alongside computation as a sink for components, or make
+    research computation-only and let computation components be the item cost?
+  - >-
+    Should the lab itself be upgradeable (for example a branch that lowers item
+    costs), or is computation the only speed lever?

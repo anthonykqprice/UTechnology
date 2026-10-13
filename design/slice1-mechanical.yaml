@@ -35,18 +35,39 @@ meta:
 # kind: component  = the components this slice is about
 # ---------------------------------------------------------------------------
 items:
-  # supplied, stock GT intermediates
-  cable_tin_single:        { kind: supplied, raw: { tin: 0.5, rubber: 1 } }
-  cable_copper_single:     { kind: supplied, raw: { copper: 0.5, rubber: 1 } }
-  cable_gold_single:       { kind: supplied, raw: { gold: 0.5, rubber: 1 } }
-  cable_silver_double:     { kind: supplied, raw: { silver: 1, rubber: 1 } }
-  wire_copper_single:      { kind: supplied, raw: { copper: 0.5 } }
-  wire_cupronickel_double: { kind: supplied, raw: { cupronickel: 1 } }
-  wire_electrum_double:    { kind: supplied, raw: { electrum: 1 } }
-  rod_steel:               { kind: supplied, raw: { steel: 0.5 } }
-  rod_aluminium:           { kind: supplied, raw: { aluminium: 0.5 } }
-  rod_stainless_steel:     { kind: supplied, raw: { stainless_steel: 0.5 } }
-  rod_magnetic_steel:      { kind: supplied, raw: { steel: 0.5 } }
+  # supplied raw materials (ingots come from smelting chains not modelled in this slice)
+  ingot_copper:            { kind: supplied, raw: { copper: 1 } }
+  ingot_tin:               { kind: supplied, raw: { tin: 1 } }
+  ingot_gold:              { kind: supplied, raw: { gold: 1 } }
+  ingot_silver:            { kind: supplied, raw: { silver: 1 } }
+  ingot_cupronickel:       { kind: supplied, raw: { cupronickel: 1 } }
+  ingot_electrum:          { kind: supplied, raw: { electrum: 1 } }
+  ingot_steel:             { kind: supplied, raw: { steel: 1 } }
+  ingot_aluminium:         { kind: supplied, raw: { aluminium: 1 } }
+  ingot_stainless_steel:   { kind: supplied, raw: { stainless_steel: 1 } }
+
+  # stock GT intermediates now made in this slice (recipes below)
+  wire_copper_single:      { kind: intermediate }
+  wire_tin_single:         { kind: intermediate }
+  wire_gold_single:        { kind: intermediate }
+  wire_silver_double:      { kind: intermediate }
+  wire_cupronickel_double: { kind: intermediate }
+  wire_electrum_double:    { kind: intermediate }
+  cable_tin_single:        { kind: intermediate }
+  cable_copper_single:     { kind: intermediate }
+  cable_gold_single:       { kind: intermediate }
+  cable_silver_double:     { kind: intermediate }
+  rod_steel:               { kind: intermediate }
+  rod_aluminium:           { kind: intermediate }
+  rod_stainless_steel:     { kind: intermediate }
+  rod_magnetic_steel:      { kind: intermediate }
+
+  # byproducts (GTM's default harderRods setting: lathe gives 1 rod + 2 small dusts)
+  dust_small_steel:           { kind: byproduct }
+  dust_small_aluminium:       { kind: byproduct }
+  dust_small_stainless_steel: { kind: byproduct }
+
+  # still supplied: stock GT intermediates whose machines aren't modelled yet
   plate_steel:             { kind: supplied, raw: { steel: 1 } }
   plate_aluminium:         { kind: supplied, raw: { aluminium: 1 } }
   plate_stainless_steel:   { kind: supplied, raw: { stainless_steel: 1 } }
@@ -63,6 +84,9 @@ items:
   hull_lv:                 { kind: supplied, raw: { steel: 8, tin: 1, rubber: 2 } }
   hull_mv:                 { kind: supplied, raw: { aluminium: 8, copper: 1, rubber: 2 } }
   hull_hv:                 { kind: supplied, raw: { stainless_steel: 8, gold: 1, rubber: 2 } }
+  assembler_lv:            { kind: supplied, note: stock GTM LV assembler, used in a multiblock controller recipe }
+  wiremill_lv:             { kind: supplied, note: stock GTM LV wiremill, used in a multiblock controller recipe }
+  lathe_lv:                { kind: supplied, note: stock GTM LV lathe, used in a multiblock controller recipe }
 
   # fluids (amounts in mB)
   rubber_fluid:            { kind: supplied, fluid: true }
@@ -97,6 +121,24 @@ machines:
     tiers: [LV, MV, HV]
     runs: [assembler]
 
+  wiremill:
+    status: stock
+    kind: single
+    tiers: [LV, MV, HV]
+    runs: [wiremill]
+
+  lathe:
+    status: stock
+    kind: single
+    tiers: [LV, MV, HV]
+    runs: [lathe]
+
+  polarizer:
+    status: stock
+    kind: single
+    tiers: [LV, MV, HV]
+    runs: [polarizer]
+
   coil_winder:
     status: new
     kind: single
@@ -116,34 +158,28 @@ machines:
   component_assembler:
     status: new
     kind: multiblock
-    unlocked_at: LV
-    runs: [assembler]            # only recipes tagged component: true
-    purpose: >
-      The first upgradeable multiblock. Runs component recipes in parallel.
-      It is built once at LV and upgraded in place through HV and beyond.
-    frames:                      # casing material sets max voltage, segments and module slots
-      steel:           { tier: LV, max_voltage: LV, max_segments: 2, module_slots: 1 }
-      aluminium:       { tier: MV, max_voltage: MV, max_segments: 4, module_slots: 2 }
-      stainless_steel: { tier: HV, max_voltage: HV, max_segments: 8, module_slots: 3 }
-    segments:
-      parallels_per_segment: 1   # a 4-segment machine runs 4 recipes at once
-      casings_per_segment: 8
-    upgrade_in_place: Replacing casings converts the frame. The controller, hatches and modules stay.
-    modules:
-      specialization_lock:
-        unlocked_at: LV
-        effect: Locks the machine to the first recipe it runs. That recipe runs 2x faster.
-        speed: 2.0
-      efficiency_coil:
-        unlocked_at: MV
-        effect: 25% less energy per craft, 20% slower.
-        energy: 0.75
-        speed: 0.8
-      batch_bus:
-        unlocked_at: HV
-        effect: Doubles parallels. Each batch consumes lubricant.
-        parallels: 2.0
-        upkeep: { lubricant: 10 }   # mB per recipe run
+    spec: multiblocks.yaml        # frames, segments, modules, structure and builds live there
+    runs: [assembler]
+    filter: component             # only recipes tagged component: true
+
+  assembly_hall:
+    status: new
+    kind: multiblock
+    spec: multiblocks.yaml
+    runs: [assembler]
+    filter: not_component         # assembler recipes not tagged component
+
+  wire_drawing_line:
+    status: new
+    kind: multiblock
+    spec: multiblocks.yaml
+    runs: [wiremill]
+
+  turning_line:
+    status: new
+    kind: multiblock
+    spec: multiblocks.yaml
+    runs: [lathe]
 
 # ---------------------------------------------------------------------------
 # Recipes
@@ -293,6 +329,34 @@ recipes:
     in:  { cable_gold_single: 3, rod_stainless_steel: 2, motor_hv: 2, piston_hv: 1, circuit_hv: 1 }
     out: { robot_arm_hv: 1 }
 
+  # ---- stock intermediates (GTM 7.5.3 generators: WireRecipeHandler,
+  # PartsRecipeHandler.processRod, PolarizingRecipeHandler). Durations are GT's
+  # formulas from material mass, converted from ticks to seconds.
+  # "circuit" is a programmed circuit: not consumed, it picks between recipes
+  # that share an input (single vs double wire from the same ingot).
+
+  # wiremill: 7 EU/t (ULV) for every metal here (blast temperature < 2800 K)
+  - { id: wire_copper_single,      status: stock, machine: wiremill, eut: 7, duration: 3.15, circuit: 1, in: { ingot_copper: 1 },      out: { wire_copper_single: 2 } }
+  - { id: wire_tin_single,         status: stock, machine: wiremill, eut: 7, duration: 5.9,  circuit: 1, in: { ingot_tin: 1 },         out: { wire_tin_single: 2 } }
+  - { id: wire_gold_single,        status: stock, machine: wiremill, eut: 7, duration: 9.8,  circuit: 1, in: { ingot_gold: 1 },        out: { wire_gold_single: 2 } }
+  - { id: wire_silver_double,      status: stock, machine: wiremill, eut: 7, duration: 5.35, circuit: 2, in: { ingot_silver: 1 },      out: { wire_silver_double: 1 } }
+  - { id: wire_cupronickel_double, status: stock, machine: wiremill, eut: 7, duration: 3.0,  circuit: 2, in: { ingot_cupronickel: 1 }, out: { wire_cupronickel_double: 1 } }
+  - { id: wire_electrum_double,    status: stock, machine: wiremill, eut: 7, duration: 7.55, circuit: 2, in: { ingot_electrum: 1 },    out: { wire_electrum_double: 1 } }
+
+  # cable covering in the assembler: 1 wire + 1 ingot's worth (144 mB) of rubber, 5 s at 7 EU/t
+  - { id: cable_tin_single,    status: stock, machine: assembler, eut: 7, duration: 5, in: { wire_tin_single: 1 },    fluid_in: { rubber_fluid: 144 }, out: { cable_tin_single: 1 } }
+  - { id: cable_copper_single, status: stock, machine: assembler, eut: 7, duration: 5, in: { wire_copper_single: 1 }, fluid_in: { rubber_fluid: 144 }, out: { cable_copper_single: 1 } }
+  - { id: cable_gold_single,   status: stock, machine: assembler, eut: 7, duration: 5, in: { wire_gold_single: 1 },   fluid_in: { rubber_fluid: 144 }, out: { cable_gold_single: 1 } }
+  - { id: cable_silver_double, status: stock, machine: assembler, eut: 7, duration: 5, in: { wire_silver_double: 1 }, fluid_in: { rubber_fluid: 144 }, out: { cable_silver_double: 1 } }
+
+  # lathe: 16 EU/t, duration = 2 x mass ticks; harderRods gives 1 rod + 2 small dusts
+  - { id: rod_steel,           status: stock, machine: lathe, eut: 16, duration: 5.6, in: { ingot_steel: 1 },           out: { rod_steel: 1, dust_small_steel: 2 } }
+  - { id: rod_aluminium,       status: stock, machine: lathe, eut: 16, duration: 2.6, in: { ingot_aluminium: 1 },       out: { rod_aluminium: 1, dust_small_aluminium: 2 } }
+  - { id: rod_stainless_steel, status: stock, machine: lathe, eut: 16, duration: 5.5, in: { ingot_stainless_steel: 1 }, out: { rod_stainless_steel: 1, dust_small_stainless_steel: 2 } }
+
+  # polarizer: steel rod to magnetic steel rod, 16 EU/t
+  - { id: rod_magnetic_steel, status: stock, machine: polarizer, eut: 16, duration: 1.4, in: { rod_steel: 1 }, out: { rod_magnetic_steel: 1 } }
+
 # ---------------------------------------------------------------------------
 # Machine build recipes (what it costs to build the factory)
 # All new; numbers are first guesses.
@@ -308,43 +372,8 @@ builds:
     tier: MV
     in: { hull_mv: 1, piston_mv: 2, motor_mv: 1, circuit_mv: 2 }
 
-  - id: component_assembler_controller
-    builds: component_assembler
-    tier: LV
-    in: { hull_lv: 1, robot_arm_lv: 2, conveyor_lv: 2, circuit_lv: 3 }
-
-  - id: casing_steel
-    builds: casing
-    frame: steel
-    in: { plate_steel: 6, frame_steel: 1 }
-    out: 2
-
-  - id: casing_aluminium
-    builds: casing
-    frame: aluminium
-    in: { plate_aluminium: 6, frame_aluminium: 1 }
-    out: 2
-
-  - id: casing_stainless_steel
-    builds: casing
-    frame: stainless_steel
-    in: { plate_stainless_steel: 6, frame_stainless_steel: 1 }
-    out: 2
-
-  - id: module_specialization_lock
-    builds: specialization_lock
-    tier: LV
-    in: { robot_arm_lv: 1, circuit_lv: 2, plate_steel: 4 }
-
-  - id: module_efficiency_coil
-    builds: efficiency_coil
-    tier: MV
-    in: { stator_coil_mv: 4, circuit_mv: 2, plate_aluminium: 4 }
-
-  - id: module_batch_bus
-    builds: batch_bus
-    tier: HV
-    in: { conveyor_hv: 2, robot_arm_hv: 1, circuit_hv: 2, plate_stainless_steel: 4 }
+  # Multiblock controllers, cores, casings, retrofit kits and modules are in
+  # multiblocks.yaml.
 
 # ---------------------------------------------------------------------------
 # Decisions
@@ -377,14 +406,40 @@ decisions:
     decided: 2026-10-13
     decision: >-
       AE2 is the logistics tool for the whole pack and is in the prototype from LV.
-      Recipes are designed for AE2 autocrafting: within one machine type, no two
-      recipes accept the same set of inputs, and non-consumed inputs (programmed
-      circuits, catalysts) are avoided where possible.
+      Recipe conflicts are allowed, as in stock GregTech, but each must be solvable
+      with programmed circuits or distinct input buses, never by blocking mode with
+      multiplied patterns. Conflicts in our own recipes are deliberate and listed by
+      the validator.
     why: >-
-      Pattern providers only push inputs and wait for outputs. Autocrafting breaks
-      when a machine can pick a different recipe from the same inputs, or when an
-      input has to stay in the machine.
+      Handling conflicts is part of GregTech gameplay, and keeping stock recipes as
+      they are avoids auditing and changing them. Requiring standard solutions keeps
+      non-blocking pattern providers working, so parallels raised by research fill
+      without re-encoding patterns.
+    revised: 2026-10-13 (first version banned conflicts)
+  - id: per-machine-upgrades
+    decided: 2026-10-13
+    decision: >-
+      Machines are upgraded individually: frames (through retrofit kits), segments
+      and modules. Upgrades are optional. There is no global research tree.
+    why: >-
+      Upgrading each machine is a soft limit on how many machines are practical,
+      and turns "build another or upgrade this one" into a real choice. Unupgraded
+      machines stay useful for passive and low-volume work. Upgrades living on the
+      machine needs no team or save-data systems, which is simpler and more stable.
+      Retrofit kits keep the upgrade a single action per machine.
+    supersedes: [team-research, machines-follow-player, research-ownership, research-v1.yaml]
+  - id: disable-overlapping-large-multiblocks
+    decided: 2026-10-13
+    decision: >-
+      Disable GTM's large_wiremill, large_assembler and large_cutter (remove their
+      recipes and hide them). Decide the other stock Large multiblocks when we
+      design those machine types.
+    why: >-
+      They duplicate our upgradeable multiblocks and would make them obsolete
+      later. large_cutter also switches between two recipe types, which the pack's
+      rules don't allow.
   - id: team-research
+    status: superseded by per-machine-upgrades
     decided: 2026-10-13
     decision: >-
       Research belongs to teams (FTB Teams), not players. A solo player is a team
@@ -392,6 +447,27 @@ decisions:
     why: >-
       Future-proofs multiplayer. Switching from per-player to team research later
       would change the save format.
+  - id: machines-follow-player
+    status: superseded by per-machine-upgrades (kept in case team features return)
+    decided: 2026-10-13
+    decision: >-
+      A machine belongs to the player who placed it and uses that player's current
+      effective team (FTB TeamManager.getTeamForPlayerID). If the player changes
+      teams, their machines change with them.
+    why: >-
+      Matches GTM's own ownership model and needs no extra state. Stamping a team
+      onto machines goes stale when parties disband. A claim or transfer tool can be
+      added later if needed.
+  - id: research-ownership
+    status: superseded by per-machine-upgrades
+    decided: 2026-10-13
+    decision: >-
+      Research belongs to the team that completed it. A player's solo research stays
+      on their personal team: it doesn't apply while they are in a party and returns
+      if they leave. A one-way "contribute to party" action may be added later.
+    why: >-
+      Predictable and exploit-free (no borrowing research by joining and leaving
+      parties), and nothing is ever lost.
 
 # ---------------------------------------------------------------------------
 # Open questions for this slice

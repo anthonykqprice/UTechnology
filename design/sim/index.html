@@ -1,0 +1,843 @@
+<title>Component Factory Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+<style>
+/* Layout: one working column — inputs (goals, factory) above results (summary, machines, recipes, materials). Shares the Tier Curve Planner's look. */
+:root {
+  --bg: #eceff2; --panel: #f8f9fb; --fg: #1b2129; --muted: #5b6673; --line: #cfd5dc;
+  --accent: #b86a12; --accent-soft: #f3e3cc;
+  --good: #2e8a57; --good-bg: #dcefe3; --warn: #b5432f; --warn-bg: #f6dfd9; --calm: #3c6e9e; --calm-bg: #dde8f3;
+  --bar: #b86a12; --bar-bg: #e3e7ec;
+  --display: "Chakra Petch", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --t-lv: #8f8f8f; --t-mv: #2fb8c4; --t-hv: #d9a400; --t-ev: #8a2fb8;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14181d; --panel: #1b2027; --fg: #e3e8ee; --muted: #94a0ad; --line: #2e3640;
+    --accent: #e39a3b; --accent-soft: #3a2a17;
+    --good: #6fcf97; --good-bg: #1d3427; --warn: #ef8a74; --warn-bg: #3d221d; --calm: #8fb6e0; --calm-bg: #1d2b3a;
+    --bar: #e39a3b; --bar-bg: #262d36; --t-lv: #a8a8a8;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14181d; --panel: #1b2027; --fg: #e3e8ee; --muted: #94a0ad; --line: #2e3640;
+  --accent: #e39a3b; --accent-soft: #3a2a17;
+  --good: #6fcf97; --good-bg: #1d3427; --warn: #ef8a74; --warn-bg: #3d221d; --calm: #8fb6e0; --calm-bg: #1d2b3a;
+  --bar: #e39a3b; --bar-bg: #262d36; --t-lv: #a8a8a8;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5; padding-inline: 16px; padding-block: 28px 56px; }
+.wrap { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+h1, h2 { font-family: var(--display); font-weight: 600; letter-spacing: 0.01em; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(1.7rem, 4vw, 2.3rem); line-height: 1.1; }
+h2 { font-size: 1.2rem; }
+p { margin: 0; }
+.lede { max-width: 70ch; color: var(--muted); }
+header { display: flex; flex-direction: column; gap: 10px; }
+.eyebrow { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+section { display: flex; flex-direction: column; gap: 12px; }
+.sec-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 16px; }
+.hint { color: var(--muted); font-size: 0.88rem; max-width: 70ch; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px; min-width: 0; }
+.source { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 0.88rem; color: var(--muted); }
+.source b { color: var(--fg); font-weight: 500; font-family: var(--mono); font-size: 0.84rem; }
+.row { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: flex-end; }
+.ctrl { display: flex; flex-direction: column; gap: 4px; }
+.lbl, .ctrl label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.seg button { font: inherit; font-size: 0.88rem; border: 0; background: transparent; color: var(--fg); padding: 6px 12px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--panel); }
+.btn { font: inherit; font-size: 0.86rem; border: 1px solid var(--line); background: var(--panel); color: var(--fg); padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+.btn:hover { border-color: var(--accent); }
+.btn.small { font-size: 0.8rem; padding: 3px 9px; }
+.btn.x { border-color: transparent; color: var(--muted); padding: 3px 7px; }
+.btn.x:hover { color: var(--warn); border-color: var(--line); }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.file-btn { position: relative; overflow: hidden; }
+.file-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+input[type="number"], input[type="text"], select { font: inherit; font-family: var(--mono); font-size: 0.86rem; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 3px; padding: 4px 6px; min-width: 0; font-variant-numeric: tabular-nums; }
+select { font-family: var(--body); }
+input:focus-visible, button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.num-in { width: 84px; }
+.goals { display: flex; flex-direction: column; gap: 8px; }
+.goal { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.goal select { min-width: 200px; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.88rem; font-variant-numeric: tabular-nums; }
+th, td { padding: 7px 8px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 500; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); vertical-align: bottom; }
+td.num, th.num { text-align: right; font-family: var(--mono); white-space: nowrap; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tile .k { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.tile .v { font-family: var(--display); font-size: 1.55rem; font-weight: 600; line-height: 1.2; }
+.tile .s { font-size: 0.82rem; color: var(--muted); }
+.tile.lead { border-color: var(--accent); }
+.pill { display: inline-block; font-size: 0.76rem; font-weight: 500; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+.pill.stock { background: var(--bar-bg); color: var(--muted); }
+.pill.changed { background: var(--accent-soft); color: var(--accent); }
+.pill.new { background: var(--good-bg); color: var(--good); }
+.pill.warn { background: var(--warn-bg); color: var(--warn); }
+.alert { background: var(--warn-bg); color: var(--warn); border-radius: 6px; padding: 10px 14px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 4px; }
+.mach-cfg { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.mach-cfg .ctrl { flex-direction: row; align-items: center; gap: 6px; }
+.chk { display: inline-flex; gap: 5px; align-items: center; font-size: 0.84rem; }
+.warnline { font-size: 0.8rem; color: var(--warn); margin-top: 4px; }
+.mname { font-weight: 500; }
+.tier-tag { display: inline-flex; align-items: center; gap: 6px; font-family: var(--display); font-weight: 600; }
+.tier-tag::before { content: ""; width: 9px; height: 9px; border-radius: 2px; background: var(--tc); }
+.bar { position: relative; height: 8px; background: var(--bar-bg); border-radius: 4px; min-width: 90px; }
+.bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: var(--bar); }
+.bar.top i { background: var(--warn); }
+.ran { font-size: 0.82rem; color: var(--muted); }
+.mats { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.mats table td:first-child { text-transform: capitalize; }
+details { font-size: 0.9rem; color: var(--muted); }
+details summary { cursor: pointer; color: var(--fg); font-weight: 500; }
+details ul { margin: 8px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; max-width: 75ch; }
+.toast { font-size: 0.82rem; color: var(--good); min-height: 1.2em; }
+textarea#copyOut { width: 100%; min-height: 120px; font-family: var(--mono); font-size: 0.78rem; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 8px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+<style>
+/* additions for v2 */
+.checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.checks ul { margin: 6px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 0.88rem; }
+.ok-line { color: var(--good); font-size: 0.88rem; }
+.counted { font-size: 0.8rem; color: var(--muted); }
+.counted.short { color: var(--warn); }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">GregTech pack design · slice simulator</span>
+    <h1>Component Factory Simulator</h1>
+    <p class="lede">Pick what you want built and the machines you have. The simulator expands every recipe from ingots up, spreads the work across your machines, and shows how long it takes, what limits it, what it consumes, and what the factory costs to build.</p>
+    <div class="source">
+      <span>Data: <b id="srcName"></b></span>
+      <div class="btns">
+        <label class="btn small file-btn">Load design file<input type="file" id="fileIn" accept=".yaml,.yml,.json"></label>
+        <button type="button" class="btn small" id="srcReset">Use built-in files</button>
+      </div>
+    </div>
+    <div class="toast" id="srcMsg" aria-live="polite"></div>
+  </header>
+
+  <section>
+    <div class="sec-head"><h2>What to build</h2></div>
+    <div class="panel row">
+      <div class="ctrl" style="flex: 1 1 320px">
+        <span class="lbl">Goals</span>
+        <div class="goals" id="goals"></div>
+        <div><button type="button" class="btn small" id="addGoal">Add goal</button></div>
+      </div>
+      <div class="ctrl">
+        <label for="power">Power supply (EU/t)</label>
+        <input type="number" id="power" class="num-in" min="1" step="32">
+      </div>
+      <div class="ctrl">
+        <span class="lbl" id="ocLbl">Overclocking</span>
+        <div class="seg" role="group" aria-labelledby="ocLbl" id="ocSeg">
+          <button type="button" data-oc="2">Standard</button>
+          <button type="button" data-oc="4">Perfect</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Result</h2>
+      <div class="btns">
+        <button type="button" class="btn small" id="copyBtn">Copy setup and results</button>
+        <button type="button" class="btn small" id="resetBtn">Reset to example</button>
+      </div>
+    </div>
+    <div class="toast" id="toast" aria-live="polite"></div>
+    <textarea id="copyOut" hidden readonly aria-label="Setup and results as text"></textarea>
+    <div id="errors"></div>
+    <div class="tiles" id="tiles"></div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Your factory</h2>
+      <p class="hint">Single blocks run one recipe at a time. Multiblocks run one recipe per counted segment. Their frame sets the voltage, how many segments count, and the module slots; segments beyond the cap are built but idle.</p>
+    </div>
+    <div class="panel scroll">
+      <table id="factory">
+        <thead><tr><th>Machine</th><th>Setup</th><th class="num">Count</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="btns" style="margin-top: 12px" id="addBtns"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Machines</h2>
+      <p class="hint">Busy time is how long each machine group works. The red bar is the group that sets the finish time when machines are the limit.</p>
+    </div>
+    <div class="panel scroll">
+      <table id="machines">
+        <thead><tr><th>Machine</th><th class="num">Busy</th><th>Utilization</th><th class="num">Energy</th><th>Ran</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Recipes</h2>
+      <p class="hint">Every recipe the goals pulled in, how many times it ran, and where. A circuit number is a programmed circuit the machine needs.</p>
+    </div>
+    <div class="panel scroll">
+      <table id="recipes">
+        <thead><tr><th>Recipe</th><th>Status</th><th class="num">Runs</th><th class="num">Made</th><th class="num">EU/t · time</th><th>Ran on</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Materials consumed</h2>
+      <p class="hint">Ingots and other supplied items the goals use up, plus byproducts left over. Fluids include module upkeep.</p>
+    </div>
+    <div class="mats">
+      <div class="panel"><table id="matMetals"><thead><tr><th>Material</th><th class="num">Ingots</th></tr></thead><tbody></tbody></table></div>
+      <div class="panel"><table id="matFluids"><thead><tr><th>Fluid</th><th class="num">mB</th></tr></thead><tbody></tbody></table></div>
+      <div class="panel"><table id="matOther"><thead><tr><th>Other supplied</th><th class="num">Count</th></tr></thead><tbody></tbody></table></div>
+      <div class="panel"><table id="matByp"><thead><tr><th>Byproducts</th><th class="num">Count</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Factory build cost</h2>
+      <p class="hint">What the multiblocks in your factory cost to build: controllers, segment cores, casings, frame boxes and modules. Hatches and single blocks aren't counted.</p>
+    </div>
+    <div class="mats">
+      <div class="panel"><table id="bcParts"><thead><tr><th>Part</th><th class="num">Count</th></tr></thead><tbody></tbody></table></div>
+      <div class="panel"><table id="bcMetals"><thead><tr><th>Material</th><th class="num">Ingots</th></tr></thead><tbody></tbody></table></div>
+      <div class="panel"><table id="bcOther"><thead><tr><th>Other</th><th class="num">Count</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Design checks</h2>
+      <p class="hint">Run over every recipe in the loaded files, not only the ones your goals use.</p>
+    </div>
+    <div class="checks" id="checks"></div>
+  </section>
+
+  <section>
+    <details>
+      <summary>How the simulator works</summary>
+      <ul>
+        <li>Goals are expanded through the recipe file down to supplied items (ingots, rubber, circuits). Each recipe runs a whole number of times; extra outputs become byproducts.</li>
+        <li>A machine can run a recipe when its tier covers the recipe's EU/t. Each tier above that is one overclock: standard halves the time at 4× EU/t, perfect quarters it. Most stock intermediates run at 7 EU/t (ULV), so they overclock once even in LV machines.</li>
+        <li>Multiblocks: parallels equal counted segments (built segments up to the frame's cap), doubled by a batch bus. The frame caps the machine's voltage. Module effects apply before overclocking. A specialization lock halves duration but only for the chosen recipe.</li>
+        <li>Work is spread across machines as if every step runs at once in a steady pipeline. Large chunks go first, each to whichever machine would finish it soonest.</li>
+        <li>The finish time is the slowest of three limits: machines (the busiest group), power (total energy divided by your supply), and the chain (one unit passing through the longest sequence of steps).</li>
+        <li>Energy hatches are assumed to supply enough amps for all parallels. The peak draw shows what that would take.</li>
+        <li>Build cost counts 8 casings per segment, 13 more for the front and end aisles, and 4 frame boxes, then expands controllers, cores and casings through the same recipes.</li>
+      </ul>
+    </details>
+  </section>
+</div>
+
+<script>
+/* Component factory simulator core, v2. Pure functions over the merged design data
+   (slice recipe file + multiblocks.yaml). Used by the simulator page (inlined) and node tests. */
+const SIM_TIERS = ["ULV", "LV", "MV", "HV", "EV", "IV", "LuV", "ZPM", "UV", "UHV"];
+const SIM_V = [8, 32, 128, 512, 2048, 8192, 32768, 131072, 524288, 2097152];
+
+const tierIndex = name => SIM_TIERS.indexOf(name);
+// lowest tier whose voltage covers the recipe's EU/t
+const recipeTier = eut => { let t = 0; while (t < SIM_V.length - 1 && SIM_V[t] < eut) t++; return t; };
+// GTM item buses hold (1 + tier)^2 slots (ULV 1, LV 4, MV 9, HV 16)
+const busSlots = tier => (1 + Math.min(9, tier)) ** 2;
+
+/* Resolve one machine group into its effective stats. */
+function resolveGroup(data, g) {
+  const m = data.machines[g.type];
+  const warnings = [];
+  if (!m) return { ok: false, warnings: [`Unknown machine type ${g.type}`] };
+  const count = Math.max(0, Math.floor(g.count || 0));
+  if (m.kind !== "multiblock") {
+    const tiers = (m.tiers || []).map(tierIndex);
+    let tier = tierIndex(g.tier);
+    if (!tiers.includes(tier)) { warnings.push(`${g.type} has no ${g.tier} version; using ${SIM_TIERS[tiers[0]]}`); tier = tiers[0]; }
+    return { ok: true, multiblock: false, type: g.type, tier, count, parallels: 1, duration: 1, energy: 1, lock: null, locked: false, upkeep: {}, warnings };
+  }
+  const fw = data.framework;
+  const frames = fw.frames;
+  const frameKey = frames[g.frame] ? g.frame : Object.keys(frames)[0];
+  if (frameKey !== g.frame) warnings.push(`Unknown frame ${g.frame}; using ${frameKey}`);
+  const f = frames[frameKey];
+  const frameTier = tierIndex(f.tier);
+  const tier = tierIndex(f.max_voltage);              // frame caps voltage, whatever the hatches
+  const maxBuilt = fw.structure.max_segments_built || 32;
+  let built = Math.max(1, Math.floor(g.segments || 1));
+  if (built > maxBuilt) { warnings.push(`The structure holds at most ${maxBuilt} segments`); built = maxBuilt; }
+  const counted = Math.min(built, f.segment_cap);
+  if (built > f.segment_cap) warnings.push(`${title(frameKey)} frame counts ${f.segment_cap} of ${built} segments; a better frame would use them all`);
+  let parallels = counted, duration = 1, energy = 1, lockDuration = 1;
+  const upkeep = {};
+  const defs = fw.module_definitions;
+  const used = [];
+  for (const k of (g.modules || [])) {
+    const mod = defs[k];
+    if (!mod) continue;
+    if (tierIndex(mod.unlocked_at) > frameTier) { warnings.push(`${title(k)} needs at least a ${mod.unlocked_at} frame`); continue; }
+    if (used.length >= f.module_slots) { warnings.push(`${title(frameKey)} frame has ${f.module_slots} module slot${f.module_slots > 1 ? "s" : ""}; ${title(k)} ignored`); continue; }
+    used.push(k);
+    if (k === "specialization_lock") { lockDuration = mod.duration || 0.5; continue; }
+    if (mod.duration) duration *= mod.duration;
+    if (mod.energy) energy *= mod.energy;
+    if (mod.parallels) parallels *= mod.parallels;
+    if (mod.upkeep) for (const u in mod.upkeep) upkeep[u] = (upkeep[u] || 0) + mod.upkeep[u];
+  }
+  const locked = used.includes("specialization_lock");
+  const lock = locked ? (g.lock || null) : null;
+  if (locked && !lock) warnings.push("Specialization lock has no recipe chosen, so this machine runs nothing");
+  return { ok: true, multiblock: true, type: g.type, tier, frame: frameKey, built, counted, count, parallels, duration, energy, lockDuration, lock, locked, upkeep, modules: used, warnings };
+}
+const title = s => String(s).replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
+/* Does this machine type run this recipe at all (ignoring voltage and locks)? */
+function machineRuns(data, type, r) {
+  const m = data.machines[type];
+  if (!m) return false;
+  if (m.kind !== "multiblock") return type === r.machine;
+  if (!(m.runs || []).includes(r.machine)) return false;
+  if (m.filter === "component") return !!r.component;
+  if (m.filter === "not_component") return !r.component;
+  return true;
+}
+
+/* Can group G run recipe r? Returns per-run stats or null. */
+function capability(data, G, r, oc) {
+  if (!G.ok || G.count < 1) return null;
+  if (!machineRuns(data, G.type, r)) return null;
+  const rt = recipeTier(r.eut);
+  if (G.tier < rt) return null;
+  let dmul = G.duration;
+  if (G.locked) { if (G.lock !== r.id) return null; dmul *= G.lockDuration; }
+  const n = G.tier - rt;
+  const dur = r.duration * dmul / Math.pow(oc, n);     // seconds per run: modules, then overclocking
+  const eut = r.eut * G.energy * Math.pow(4, n);       // EU/t while running
+  const energyPerRun = eut * dur * 20;                 // EU per run
+  const perRun = dur / G.parallels;                    // machine-seconds per run with parallels
+  return { overclocks: n, dur, eut, energyPerRun, runTime: dur, perRun };
+}
+
+function outputsIndex(recipes) {
+  const byOut = {};
+  for (const r of recipes) { const main = Object.keys(r.out)[0]; if (!byOut[main]) byOut[main] = r; }
+  for (const r of recipes) for (const o in r.out) if (!byOut[o]) byOut[o] = r;
+  return byOut;
+}
+
+/* Expand goals into recipe runs, supplied totals and byproducts. */
+function expand(data, goals, recipes) {
+  recipes = recipes || data.recipes;
+  const byOut = outputsIndex(recipes);
+  const order = [], seen = new Set();
+  const visit = item => {
+    if (seen.has(item)) return; seen.add(item);
+    const r = byOut[item];
+    if (r) for (const k of Object.keys(r.in || {}).concat(Object.keys(r.fluid_in || {}))) visit(k);
+    order.push(item);
+  };
+  goals.forEach(g => visit(g.item));
+  order.reverse(); // consumers before their inputs
+  const demand = {};
+  goals.forEach(g => { demand[g.item] = (demand[g.item] || 0) + Math.max(0, g.qty || 0); });
+  const runs = {}, supplied = {}, made = {}, byproducts = {};
+  for (const item of order) {
+    const need = demand[item] || 0;
+    if (!need) continue;
+    const r = byOut[item];
+    if (!r) { supplied[item] = (supplied[item] || 0) + need; continue; }
+    const k = Math.ceil(need / r.out[item] - 1e-9);
+    runs[r.id] = (runs[r.id] || 0) + k;
+    for (const [o, q] of Object.entries(r.out)) {
+      made[o] = (made[o] || 0) + k * q;
+      if (o !== item) byproducts[o] = (byproducts[o] || 0) + k * q;
+    }
+    for (const [i, q] of Object.entries(r.in || {})) demand[i] = (demand[i] || 0) + k * q;
+    for (const [i, q] of Object.entries(r.fluid_in || {})) demand[i] = (demand[i] || 0) + k * q;
+  }
+  return { runs, supplied, made, byproducts, byOut };
+}
+
+/* Materials for a set of supplied items. */
+function materials(data, supplied) {
+  const raw = {}, fluids = {}, other = {};
+  for (const [item, q] of Object.entries(supplied)) {
+    const it = data.items[item] || {};
+    if (it.fluid) fluids[item] = (fluids[item] || 0) + q;
+    else if (it.raw) for (const [mat, a] of Object.entries(it.raw)) raw[mat] = (raw[mat] || 0) + a * q;
+    else other[item] = (other[item] || 0) + q;
+  }
+  return { raw, fluids, other };
+}
+
+/* Items needed to build the factory's multiblocks (hatches not counted). */
+function buildItems(data, factory) {
+  const need = {};
+  const add = (id, q) => { if (q > 0) need[id] = (need[id] || 0) + q; };
+  const fw = data.framework, mbs = data.multiblocks || {};
+  for (const g of factory) {
+    const m = data.machines[g.type];
+    if (!m || m.kind !== "multiblock") continue;
+    const G = resolveGroup(data, g), spec = mbs[g.type];
+    if (!G.ok || !spec || G.count < 1) continue;
+    const f = fw.frames[G.frame];
+    const casingsPerSeg = (fw.segments && fw.segments.casings_per_segment) || 8;
+    // front aisle 8 positions and end aisle 5 edge positions (some become hatches; counted as casings),
+    // plus 4 frame boxes in the end aisle's corners, plus 8 casings per segment
+    const casings = 13 + G.built * casingsPerSeg;
+    add("casing_" + G.frame, casings * G.count);
+    add("frame_" + G.frame, 4 * G.count);
+    add(spec.core.id, G.built * G.count);
+    add("controller_" + g.type, G.count);
+    for (const k of G.modules) add("module_" + k, G.count);
+  }
+  return need;
+}
+
+/* Recipes for building: casings, cores, controllers, modules (from multiblocks.yaml). */
+function buildRecipes(data) {
+  const out = [];
+  for (const b of (data.framework_builds || [])) {
+    const id = b.builds === "casing" ? "casing_" + b.frame : b.builds === "retrofit_kit" ? "retrofit_kit_" + b.frame : "module_" + b.builds;
+    out.push({ id: "build_" + b.id, in: b.in, out: { [id]: b.out || 1 } });
+  }
+  for (const [k, spec] of Object.entries(data.multiblocks || {})) {
+    out.push({ id: "build_core_" + k, in: spec.core.in, out: { [spec.core.id]: 1 } });
+    out.push({ id: "build_controller_" + k, in: spec.controller.in, out: { ["controller_" + k]: 1 } });
+  }
+  return out;
+}
+
+function buildCost(data, factory) {
+  const need = buildItems(data, factory);
+  const goals = Object.entries(need).map(([item, qty]) => ({ item, qty }));
+  const recipes = buildRecipes(data).concat(data.recipes);
+  const e = expand(data, goals, recipes);
+  return { need, lvMotors: e.made.motor_lv || 0, ...materials(data, e.supplied), supplied: e.supplied };
+}
+
+/* Design checks: recipe conflicts within a machine type, and bus sizes. */
+function checks(data) {
+  const conflicts = [], bus = [];
+  const byMachine = {};
+  for (const r of data.recipes) (byMachine[r.machine] = byMachine[r.machine] || []).push(r);
+  const key = r => Object.keys(r.in || {}).sort().join("+") + "|" + Object.keys(r.fluid_in || {}).sort().join("+");
+  for (const [mach, list] of Object.entries(byMachine)) {
+    const groups = {};
+    for (const r of list) (groups[key(r)] = groups[key(r)] || []).push(r);
+    for (const g of Object.values(groups)) if (g.length > 1) {
+      const circuits = g.map(r => r.circuit);
+      const resolved = new Set(circuits).size === g.length && circuits.every(c => c != null);
+      conflicts.push({ machine: mach, recipes: g.map(r => r.id), resolved, how: resolved ? "programmed circuits" : "unresolved" });
+    }
+  }
+  // lowest tier at which some machine type can run the recipe (no machine exists at ULV)
+  const lowestMachineTier = r => {
+    let best = Infinity;
+    for (const [k, m] of Object.entries(data.machines)) {
+      if (!machineRuns(data, k, r)) continue;
+      const tiers = m.kind === "multiblock" ? Object.values(data.framework.frames).map(f => tierIndex(f.max_voltage)) : (m.tiers || []).map(tierIndex);
+      for (const t of tiers) if (t >= recipeTier(r.eut)) best = Math.min(best, t);
+    }
+    return isFinite(best) ? best : recipeTier(r.eut);
+  };
+  for (const r of data.recipes) {
+    // GTM buses have a separate slot for the programmed circuit, so only items count
+    const n = Object.keys(r.in || {}).length;
+    const t = lowestMachineTier(r);
+    if (n > busSlots(t)) {
+      let need = t; while (busSlots(need) < n) need++;
+      bus.push({ recipe: r.id, inputs: n, tier: SIM_TIERS[t], slots: busSlots(t), singleBusTier: SIM_TIERS[need] });
+    }
+  }
+  return { conflicts, bus };
+}
+
+/* Full simulation. settings: {oc: 2|4, power: EU/t available}. */
+function simulate(data, factory, goals, settings) {
+  const oc = settings.oc === 4 ? 4 : 2;
+  const groups = factory.map(g => resolveGroup(data, g));
+  const { runs, supplied, made, byproducts, byOut } = expand(data, goals);
+  const recipes = Object.fromEntries(data.recipes.map(r => [r.id, r]));
+  const errors = [];
+  const caps = {};
+  for (const id in runs) {
+    const r = recipes[id];
+    caps[id] = groups.map((G, gi) => ({ gi, cap: capability(data, G, r, oc) })).filter(x => x.cap);
+    if (!caps[id].length) {
+      const t = SIM_TIERS[recipeTier(r.eut)];
+      const who = Object.keys(data.machines).filter(k => machineRuns(data, k, r)).map(title).join(" or ");
+      errors.push({ recipe: id, text: `Nothing in the factory can run ${title(id)}. It needs a ${who} at ${t} or above.` });
+    }
+  }
+
+  // list scheduling of divisible work: big chunks first, each to the group that finishes it earliest
+  const load = groups.map(() => 0);
+  const assign = {};
+  const chunks = [];
+  for (const id in runs) {
+    if (!caps[id].length) continue;
+    const total = runs[id], size = Math.max(1, Math.ceil(total / 200));
+    for (let done = 0; done < total; done += size) chunks.push({ id, n: Math.min(size, total - done) });
+  }
+  const best = id => Math.min(...caps[id].map(x => x.cap.perRun / groups[x.gi].count));
+  chunks.sort((a, b) => b.n * best(b.id) - a.n * best(a.id));
+  for (const c of chunks) {
+    let pick = null, finish = Infinity;
+    for (const { gi, cap } of caps[c.id]) {
+      const f = load[gi] + c.n * cap.perRun / groups[gi].count;
+      if (f < finish - 1e-12) { finish = f; pick = gi; }
+    }
+    load[pick] = finish;
+    (assign[c.id] = assign[c.id] || {})[pick] = ((assign[c.id] || {})[pick] || 0) + c.n;
+  }
+
+  let energy = 0;
+  const upkeep = {};
+  const groupStats = groups.map((G, gi) => ({ gi, load: load[gi], energy: 0, runs: {}, peakEut: 0 }));
+  for (const id in assign) for (const gi in assign[id]) {
+    const n = assign[id][gi], cap = caps[id].find(x => x.gi === +gi).cap, G = groups[gi];
+    energy += n * cap.energyPerRun;
+    groupStats[gi].energy += n * cap.energyPerRun;
+    groupStats[gi].runs[id] = n;
+    groupStats[gi].peakEut = Math.max(groupStats[gi].peakEut, cap.eut * G.parallels * G.count);
+    for (const u in G.upkeep) upkeep[u] = (upkeep[u] || 0) + G.upkeep[u] * n;
+  }
+
+  const chainMemo = {};
+  const chain = item => {
+    if (item in chainMemo) return chainMemo[item];
+    const r = byOut[item];
+    if (!r || !caps[r.id] || !caps[r.id].length) return (chainMemo[item] = 0);
+    const step = Math.min(...caps[r.id].map(x => x.cap.runTime));
+    let sub = 0;
+    for (const k of Object.keys(r.in || {})) sub = Math.max(sub, chain(k));
+    return (chainMemo[item] = step + sub);
+  };
+  const chainTime = Math.max(0, ...goals.map(g => chain(g.item)));
+
+  const machineTime = Math.max(0, ...load);
+  const powerTime = settings.power > 0 ? energy / (settings.power * 20) : Infinity;
+  let total = machineTime, limit = "machines";
+  if (chainTime > total) { total = chainTime; limit = "chain"; }
+  if (powerTime > total) { total = powerTime; limit = "power"; }
+  let bottleneck = null;
+  if (limit === "machines") { let mx = -1; load.forEach((l, gi) => { if (l > mx) { mx = l; bottleneck = gi; } }); }
+
+  const mats = materials(data, supplied);
+  for (const u in upkeep) mats.fluids[u] = (mats.fluids[u] || 0) + upkeep[u];
+
+  return {
+    groups, groupStats, runs, assign, caps, made, supplied, byproducts, errors,
+    raw: mats.raw, fluids: mats.fluids, other: mats.other,
+    energy, machineTime, chainTime, powerTime, total, limit, bottleneck,
+    avgDraw: total > 0 ? energy / (total * 20) : 0,
+    peakDraw: groupStats.reduce((a, s) => a + s.peakEut, 0)
+  };
+}
+
+
+const BUILTIN = {"meta": {"slice": "mechanical-lv-hv", "version": "0.1-draft", "multiblocks_version": "0.1-draft"}, "items": {"ingot_copper": {"kind": "supplied", "raw": {"copper": 1}}, "ingot_tin": {"kind": "supplied", "raw": {"tin": 1}}, "ingot_gold": {"kind": "supplied", "raw": {"gold": 1}}, "ingot_silver": {"kind": "supplied", "raw": {"silver": 1}}, "ingot_cupronickel": {"kind": "supplied", "raw": {"cupronickel": 1}}, "ingot_electrum": {"kind": "supplied", "raw": {"electrum": 1}}, "ingot_steel": {"kind": "supplied", "raw": {"steel": 1}}, "ingot_aluminium": {"kind": "supplied", "raw": {"aluminium": 1}}, "ingot_stainless_steel": {"kind": "supplied", "raw": {"stainless_steel": 1}}, "wire_copper_single": {"kind": "intermediate"}, "wire_tin_single": {"kind": "intermediate"}, "wire_gold_single": {"kind": "intermediate"}, "wire_silver_double": {"kind": "intermediate"}, "wire_cupronickel_double": {"kind": "intermediate"}, "wire_electrum_double": {"kind": "intermediate"}, "cable_tin_single": {"kind": "intermediate"}, "cable_copper_single": {"kind": "intermediate"}, "cable_gold_single": {"kind": "intermediate"}, "cable_silver_double": {"kind": "intermediate"}, "rod_steel": {"kind": "intermediate"}, "rod_aluminium": {"kind": "intermediate"}, "rod_stainless_steel": {"kind": "intermediate"}, "rod_magnetic_steel": {"kind": "intermediate"}, "dust_small_steel": {"kind": "byproduct"}, "dust_small_aluminium": {"kind": "byproduct"}, "dust_small_stainless_steel": {"kind": "byproduct"}, "plate_steel": {"kind": "supplied", "raw": {"steel": 1}}, "plate_aluminium": {"kind": "supplied", "raw": {"aluminium": 1}}, "plate_stainless_steel": {"kind": "supplied", "raw": {"stainless_steel": 1}}, "gear_small_steel": {"kind": "supplied", "raw": {"steel": 1}}, "gear_small_aluminium": {"kind": "supplied", "raw": {"aluminium": 1}}, "gear_small_stainless": {"kind": "supplied", "raw": {"stainless_steel": 1}}, "ring_stainless_steel": {"kind": "supplied", "raw": {"stainless_steel": 0.25}}, "circuit_lv": {"kind": "supplied", "note": "circuit chain not modelled yet"}, "circuit_mv": {"kind": "supplied", "note": "circuit chain not modelled yet"}, "circuit_hv": {"kind": "supplied", "note": "circuit chain not modelled yet"}, "frame_steel": {"kind": "supplied", "raw": {"steel": 2}}, "frame_aluminium": {"kind": "supplied", "raw": {"aluminium": 2}}, "frame_stainless_steel": {"kind": "supplied", "raw": {"stainless_steel": 2}}, "hull_lv": {"kind": "supplied", "raw": {"steel": 8, "tin": 1, "rubber": 2}}, "hull_mv": {"kind": "supplied", "raw": {"aluminium": 8, "copper": 1, "rubber": 2}}, "hull_hv": {"kind": "supplied", "raw": {"stainless_steel": 8, "gold": 1, "rubber": 2}}, "assembler_lv": {"kind": "supplied", "note": "stock GTM LV assembler", "used in a multiblock controller recipe": null}, "wiremill_lv": {"kind": "supplied", "note": "stock GTM LV wiremill", "used in a multiblock controller recipe": null}, "lathe_lv": {"kind": "supplied", "note": "stock GTM LV lathe", "used in a multiblock controller recipe": null}, "rubber_fluid": {"kind": "supplied", "fluid": true}, "lubricant": {"kind": "supplied", "fluid": true, "note": "stock GT fluid"}, "stator_coil_mv": {"kind": "part", "tier": "MV", "name": "MV Stator Coil"}, "stator_coil_hv": {"kind": "part", "tier": "HV", "name": "HV Stator Coil"}, "bearing_hv": {"kind": "part", "tier": "HV", "name": "Precision Bearing"}, "motor_lv": {"kind": "component", "tier": "LV", "family": "wound"}, "motor_mv": {"kind": "component", "tier": "MV", "family": "wound"}, "motor_hv": {"kind": "component", "tier": "HV", "family": "wound"}, "piston_lv": {"kind": "component", "tier": "LV"}, "piston_mv": {"kind": "component", "tier": "MV"}, "piston_hv": {"kind": "component", "tier": "HV"}, "conveyor_lv": {"kind": "component", "tier": "LV"}, "conveyor_mv": {"kind": "component", "tier": "MV"}, "conveyor_hv": {"kind": "component", "tier": "HV"}, "robot_arm_lv": {"kind": "component", "tier": "LV"}, "robot_arm_mv": {"kind": "component", "tier": "MV"}, "robot_arm_hv": {"kind": "component", "tier": "HV"}}, "machines": {"assembler": {"status": "stock", "kind": "single", "tiers": ["LV", "MV", "HV"], "runs": ["assembler"]}, "wiremill": {"status": "stock", "kind": "single", "tiers": ["LV", "MV", "HV"], "runs": ["wiremill"]}, "lathe": {"status": "stock", "kind": "single", "tiers": ["LV", "MV", "HV"], "runs": ["lathe"]}, "polarizer": {"status": "stock", "kind": "single", "tiers": ["LV", "MV", "HV"], "runs": ["polarizer"]}, "coil_winder": {"status": "new", "kind": "single", "tiers": ["LV", "MV", "HV"], "unlocked_at": "LV", "runs": ["coil_winder"], "purpose": "Winds stator coils. Needed for MV motors (LV voltage) and HV motors (MV voltage)."}, "bearing_press": {"status": "new", "kind": "single", "tiers": ["MV", "HV"], "unlocked_at": "MV", "runs": ["bearing_press"], "purpose": "Presses precision bearings with lubricant. Needed for HV motors."}, "component_assembler": {"status": "new", "kind": "multiblock", "spec": "multiblocks.yaml", "runs": ["assembler"], "filter": "component"}, "assembly_hall": {"status": "new", "kind": "multiblock", "spec": "multiblocks.yaml", "runs": ["assembler"], "filter": "not_component"}, "wire_drawing_line": {"status": "new", "kind": "multiblock", "spec": "multiblocks.yaml", "runs": ["wiremill"]}, "turning_line": {"status": "new", "kind": "multiblock", "spec": "multiblocks.yaml", "runs": ["lathe"]}}, "recipes": [{"id": "motor_lv", "status": "stock", "machine": "assembler", "component": true, "eut": 30, "duration": 5, "in": {"cable_tin_single": 2, "rod_steel": 2, "rod_magnetic_steel": 1, "wire_copper_single": 4}, "out": {"motor_lv": 1}}, {"id": "stator_coil_mv", "status": "new", "machine": "coil_winder", "eut": 30, "duration": 10, "in": {"rod_magnetic_steel": 1, "wire_cupronickel_double": 4}, "out": {"stator_coil_mv": 1}, "note": "Takes over the wire and magnet that stock puts directly into the MV motor."}, {"id": "motor_mv", "status": "changed", "machine": "assembler", "component": true, "eut": 30, "duration": 10, "in": {"motor_lv": 2, "stator_coil_mv": 1, "rod_aluminium": 2, "cable_copper_single": 2}, "out": {"motor_mv": 1}, "stock_was": {"in": {"cable_copper_single": 2, "rod_aluminium": 2, "rod_magnetic_steel": 1, "wire_cupronickel_double": 4}, "duration": 5}}, {"id": "stator_coil_hv", "status": "new", "machine": "coil_winder", "eut": 120, "duration": 10, "in": {"rod_magnetic_steel": 1, "wire_electrum_double": 4}, "out": {"stator_coil_hv": 1}}, {"id": "bearing_hv", "status": "new", "machine": "bearing_press", "eut": 120, "duration": 8, "in": {"ring_stainless_steel": 2, "rod_stainless_steel": 1}, "fluid_in": {"lubricant": 50}, "out": {"bearing_hv": 2}}, {"id": "motor_hv", "status": "changed", "machine": "assembler", "component": true, "eut": 120, "duration": 10, "in": {"motor_mv": 3, "stator_coil_hv": 1, "bearing_hv": 2, "rod_stainless_steel": 2, "cable_silver_double": 2}, "out": {"motor_hv": 1}, "stock_was": {"in": {"cable_silver_double": 2, "rod_stainless_steel": 2, "rod_magnetic_steel": 1, "wire_electrum_double": 4}, "eut": 30, "duration": 5}}, {"id": "piston_lv", "status": "stock", "machine": "assembler", "component": true, "eut": 30, "duration": 5, "in": {"rod_steel": 2, "cable_tin_single": 2, "plate_steel": 3, "gear_small_steel": 1, "motor_lv": 1}, "out": {"piston_lv": 1}}, {"id": "piston_mv", "status": "stock", "machine": "assembler", "component": true, "eut": 30, "duration": 5, "in": {"rod_aluminium": 2, "cable_copper_single": 2, "plate_aluminium": 3, "gear_small_aluminium": 1, "motor_mv": 1}, "out": {"piston_mv": 1}}, {"id": "piston_hv", "status": "stock", "machine": "assembler", "component": true, "eut": 30, "duration": 5, "in": {"rod_stainless_steel": 2, "cable_gold_single": 2, "plate_stainless_steel": 3, "gear_small_stainless": 1, "motor_hv": 1}, "out": {"piston_hv": 1}}, {"id": "conveyor_lv", "status": "stock", "machine": "assembler", "component": true, "eut": 30, "duration": 5, "in": {"cable_tin_single": 1, "motor_lv": 2}, "fluid_in": {"rubber_fluid": 864}, "out": {"conveyor_lv": 1}}, {"id": "conveyor_mv", "status": "stock", "machine": "assembler", "component": true, "eut": 30, "duration": 5, "in": {"cable_copper_single": 1, "motor_mv": 2}, "fluid_in": {"rubber_fluid": 864}, "out": {"conveyor_mv": 1}}, {"id": "conveyor_hv", "status": "stock", "machine": "assembler", "component": true, "eut": 30, "duration": 5, "in": {"cable_gold_single": 1, "motor_hv": 2}, "fluid_in": {"rubber_fluid": 864}, "out": {"conveyor_hv": 1}}, {"id": "robot_arm_lv", "status": "stock", "machine": "assembler", "component": true, "eut": 30, "duration": 5, "in": {"cable_tin_single": 3, "rod_steel": 2, "motor_lv": 2, "piston_lv": 1, "circuit_lv": 1}, "out": {"robot_arm_lv": 1}}, {"id": "robot_arm_mv", "status": "stock", "machine": "assembler", "component": true, "eut": 30, "duration": 5, "in": {"cable_copper_single": 3, "rod_aluminium": 2, "motor_mv": 2, "piston_mv": 1, "circuit_mv": 1}, "out": {"robot_arm_mv": 1}}, {"id": "robot_arm_hv", "status": "stock", "machine": "assembler", "component": true, "eut": 30, "duration": 5, "in": {"cable_gold_single": 3, "rod_stainless_steel": 2, "motor_hv": 2, "piston_hv": 1, "circuit_hv": 1}, "out": {"robot_arm_hv": 1}}, {"id": "wire_copper_single", "status": "stock", "machine": "wiremill", "eut": 7, "duration": 3.15, "circuit": 1, "in": {"ingot_copper": 1}, "out": {"wire_copper_single": 2}}, {"id": "wire_tin_single", "status": "stock", "machine": "wiremill", "eut": 7, "duration": 5.9, "circuit": 1, "in": {"ingot_tin": 1}, "out": {"wire_tin_single": 2}}, {"id": "wire_gold_single", "status": "stock", "machine": "wiremill", "eut": 7, "duration": 9.8, "circuit": 1, "in": {"ingot_gold": 1}, "out": {"wire_gold_single": 2}}, {"id": "wire_silver_double", "status": "stock", "machine": "wiremill", "eut": 7, "duration": 5.35, "circuit": 2, "in": {"ingot_silver": 1}, "out": {"wire_silver_double": 1}}, {"id": "wire_cupronickel_double", "status": "stock", "machine": "wiremill", "eut": 7, "duration": 3.0, "circuit": 2, "in": {"ingot_cupronickel": 1}, "out": {"wire_cupronickel_double": 1}}, {"id": "wire_electrum_double", "status": "stock", "machine": "wiremill", "eut": 7, "duration": 7.55, "circuit": 2, "in": {"ingot_electrum": 1}, "out": {"wire_electrum_double": 1}}, {"id": "cable_tin_single", "status": "stock", "machine": "assembler", "eut": 7, "duration": 5, "in": {"wire_tin_single": 1}, "fluid_in": {"rubber_fluid": 144}, "out": {"cable_tin_single": 1}}, {"id": "cable_copper_single", "status": "stock", "machine": "assembler", "eut": 7, "duration": 5, "in": {"wire_copper_single": 1}, "fluid_in": {"rubber_fluid": 144}, "out": {"cable_copper_single": 1}}, {"id": "cable_gold_single", "status": "stock", "machine": "assembler", "eut": 7, "duration": 5, "in": {"wire_gold_single": 1}, "fluid_in": {"rubber_fluid": 144}, "out": {"cable_gold_single": 1}}, {"id": "cable_silver_double", "status": "stock", "machine": "assembler", "eut": 7, "duration": 5, "in": {"wire_silver_double": 1}, "fluid_in": {"rubber_fluid": 144}, "out": {"cable_silver_double": 1}}, {"id": "rod_steel", "status": "stock", "machine": "lathe", "eut": 16, "duration": 5.6, "in": {"ingot_steel": 1}, "out": {"rod_steel": 1, "dust_small_steel": 2}}, {"id": "rod_aluminium", "status": "stock", "machine": "lathe", "eut": 16, "duration": 2.6, "in": {"ingot_aluminium": 1}, "out": {"rod_aluminium": 1, "dust_small_aluminium": 2}}, {"id": "rod_stainless_steel", "status": "stock", "machine": "lathe", "eut": 16, "duration": 5.5, "in": {"ingot_stainless_steel": 1}, "out": {"rod_stainless_steel": 1, "dust_small_stainless_steel": 2}}, {"id": "rod_magnetic_steel", "status": "stock", "machine": "polarizer", "eut": 16, "duration": 1.4, "in": {"rod_steel": 1}, "out": {"rod_magnetic_steel": 1}}], "framework": {"implementation": "One Java base class (WorkableElectricMultiblockMachine underneath) holding all pattern, segment-count, frame and module logic, per CLAUDE.md, so the GTM 8.0 pattern migration touches one place.", "structure": {"shape": "3 wide, 3 tall. Length is 1 front aisle + N segments + 1 end aisle.", "legend": {"X": "controller", "H": "frame casing, or a hatch", "C": "frame casing only", "K": "the machine's core block (specific to each machine type)", "F": "frame box of the frame material (e.g. gtceu:steel_frame)"}, "aisles": {"front": ["HHH", "HXH", "HHH"], "segment": ["CCC", "CKC", "CCC"], "end": ["FHF", "HHH", "FHF"]}, "spike_rule": "GTM double-counts limited hatches in the aisle right after a repeatable aisle unless that aisle's first checked block differs from the segment's. The end aisle's corners are frame boxes, not casings, so its first checked block always differs. Required GameTest: limited hatches in the end aisle form correctly at every length from 1 to the largest cap.", "max_segments_built": 32}, "hatches": {"positions": "Any H. Front and end aisles together offer 15 positions.", "limits": {"maintenance": {"min": 1, "max": 1, "note": "required while GTM maintenance is enabled"}, "energy_input": {"min": 1, "max": 2}, "item_input_bus": {"min": 1, "max": 6}, "item_output_bus": {"min": 1, "max": 2}, "fluid_input_hatch": {"min": 0, "max": 2, "only_if": "machine uses fluids"}, "fluid_output_hatch": {"min": 0, "max": 1, "only_if": "machine outputs fluids"}}, "voltage": "The machine's max voltage is capped at its frame's max_voltage, whatever its energy hatches are. This also overrides GTM's \"two hatches give one tier more\" rule, which stays in reserve as a deliberate gate (see the component-voltage decision in slice1-mechanical.yaml).", "bus_sizes": "GTM item buses hold (1 + tier)^2 slots: LV 4, MV 9, HV 16. Buses in normal mode pool their slots; a distinct bus must hold a whole recipe by itself. The validator checks every recipe against the buses available at its tier."}, "frames": {"steel": {"tier": "LV", "casing": "gtceu:solid_machine_casing", "frame_box": "gtceu:steel_frame", "max_voltage": "LV", "segment_cap": 4, "module_slots": 1}, "aluminium": {"tier": "MV", "casing": "gtceu:frostproof_machine_casing", "frame_box": "gtceu:aluminium_frame", "max_voltage": "MV", "segment_cap": 8, "module_slots": 2}, "stainless_steel": {"tier": "HV", "casing": "gtceu:clean_machine_casing", "frame_box": "gtceu:stainless_steel_frame", "max_voltage": "HV", "segment_cap": 16, "module_slots": 3}}, "frame_notes": ["Frames reuse GTM's stock casings and frame boxes, so textures and recipes already exist.", "Every casing and frame box in a structure must be the same material.", "Segment caps doubled from the slice's first draft (2/4/8 to 4/8/16) for more physical growth. The spike measured 37.5 \u00b5s per structure check at 8 segments; 16 must be measured before it ships."], "segments": {"parallels": "one per counted segment", "counted": "min(segments built, frame segment_cap)", "over_cap": "A structure longer than its cap still forms, runs at the cap, and shows \"build a better frame to use all segments\". Players can build ahead.", "cost": "8 casings + 1 core block of the machine type."}, "retrofit": {"action": "Right-click the controller with retrofit kits of the next frame. The machine converts all its casings and frame boxes in one action and gives the old ones back to the player. Controller, hatches, cores and modules stay.", "kits_needed": "one per 8 casings or frame boxes, rounded up", "downgrade": "Allowed the same way, with kits of the lower frame."}, "modules": {"install": "Item slots in the controller's screen; the frame sets how many. Removing a module returns it. Effects apply from the next recipe (alwaysTryModifyRecipe).", "shared": ["specialization_lock", "efficiency_coil", "batch_bus"], "unique_per_machine": "none in v1", "unique_note": "Machine-specific modules would only be renamed speed or energy boosts unless they change recipe outputs, which would break material balance. Each machine differs through its core block, recipe type and role in the chain instead. Revisit when a machine needs a real mechanic of its own."}, "module_definitions": {"specialization_lock": {"unlocked_at": "LV", "effect": "Locks to the next recipe the machine runs; only that recipe, at 2x speed.", "duration": 0.5}, "efficiency_coil": {"unlocked_at": "MV", "effect": "25% less energy per craft; recipes take 25% longer.", "energy": 0.75, "duration": 1.25}, "batch_bus": {"unlocked_at": "HV", "effect": "Doubles parallels. Each recipe run consumes lubricant.", "parallels": 2.0, "upkeep": {"lubricant": 10}, "naming_note": "GTM has an unrelated \"batch mode\"; rename before release to avoid confusion."}}, "modifier_order": "segments (parallels), then modules, then overclocking"}, "framework_builds": [{"id": "casing_steel", "builds": "casing", "status": "stock (check exact recipe against GTM 7.5.3)", "frame": "steel", "in": {"plate_steel": 6, "frame_steel": 1}, "out": 2}, {"id": "casing_aluminium", "builds": "casing", "status": "stock (check exact recipe against GTM 7.5.3)", "frame": "aluminium", "in": {"plate_aluminium": 6, "frame_aluminium": 1}, "out": 2}, {"id": "casing_stainless_steel", "builds": "casing", "status": "stock (check exact recipe against GTM 7.5.3)", "frame": "stainless_steel", "in": {"plate_stainless_steel": 6, "frame_stainless_steel": 1}, "out": 2}, {"id": "retrofit_kit_aluminium", "builds": "retrofit_kit", "frame": "aluminium", "note": "Converts 8 casings to aluminium. Costs the same as 8 new casings.", "in": {"plate_aluminium": 24, "frame_aluminium": 4}}, {"id": "retrofit_kit_stainless_steel", "builds": "retrofit_kit", "frame": "stainless_steel", "note": "Converts 8 casings to stainless steel. Costs the same as 8 new casings.", "in": {"plate_stainless_steel": 24, "frame_stainless_steel": 4}}, {"id": "module_specialization_lock", "builds": "specialization_lock", "tier": "LV", "in": {"robot_arm_lv": 1, "circuit_lv": 2, "plate_steel": 4}}, {"id": "module_efficiency_coil", "builds": "efficiency_coil", "tier": "MV", "in": {"stator_coil_mv": 4, "circuit_mv": 2, "plate_aluminium": 4}}, {"id": "module_batch_bus", "builds": "batch_bus", "tier": "HV", "in": {"conveyor_hv": 2, "robot_arm_hv": 1, "circuit_hv": 2, "plate_stainless_steel": 4}}], "multiblocks": {"component_assembler": {"name": "Component Assembler", "runs": "assembler recipes marked component (motors, pistons, conveyors, robot arms)", "fluids": "in", "core": {"id": "assembly_arm_housing", "name": "Assembly Arm Housing", "in": {"robot_arm_lv": 2, "conveyor_lv": 2, "frame_steel": 1}, "note": "About 10 LV motors per segment. Growing the machine pulls on the same component chain it produces, which is the point."}, "controller": {"in": {"assembler_lv": 1, "robot_arm_lv": 2, "conveyor_lv": 2, "circuit_lv": 3}}}, "assembly_hall": {"name": "Assembly Hall", "runs": "all other assembler recipes (cables, hulls, casings, machines)", "fluids": "in", "core": {"id": "assembly_bench_unit", "name": "Assembly Bench Unit", "in": {"robot_arm_lv": 1, "piston_lv": 2, "frame_steel": 1}}, "controller": {"in": {"assembler_lv": 1, "robot_arm_lv": 2, "piston_lv": 2, "circuit_lv": 3}}}, "wire_drawing_line": {"name": "Wire Drawing Line", "runs": "wiremill recipes", "fluids": "none", "core": {"id": "drawing_die_unit", "name": "Drawing Die Unit", "in": {"motor_lv": 2, "gear_small_steel": 2, "frame_steel": 1}}, "controller": {"in": {"wiremill_lv": 1, "motor_lv": 2, "conveyor_lv": 1, "circuit_lv": 3}}}, "turning_line": {"name": "Turning Line", "runs": "lathe recipes", "fluids": "none", "core": {"id": "spindle_unit", "name": "Spindle Unit", "in": {"motor_lv": 2, "piston_lv": 1, "frame_steel": 1}}, "controller": {"in": {"lathe_lv": 1, "motor_lv": 2, "piston_lv": 1, "circuit_lv": 3}}}}};
+const BUILTIN_NAME = "slice1-mechanical.yaml + multiblocks.yaml";
+const KEY = "component-factory-sim-v2";
+const EXAMPLE = {
+  oc: 2, power: 512,
+  goals: [{ item: "robot_arm_hv", qty: 4 }, { item: "conveyor_hv", qty: 4 }, { item: "piston_hv", qty: 4 }],
+  factory: [
+    { type: "component_assembler", frame: "aluminium", segments: 6, modules: ["specialization_lock"], lock: "motor_lv", count: 1 },
+    { type: "assembly_hall", frame: "steel", segments: 4, modules: [], count: 1 },
+    { type: "wire_drawing_line", frame: "aluminium", segments: 6, modules: [], count: 1 },
+    { type: "turning_line", frame: "steel", segments: 4, modules: [], count: 1 },
+    { type: "assembler", tier: "MV", count: 2 },
+    { type: "coil_winder", tier: "MV", count: 2 },
+    { type: "bearing_press", tier: "MV", count: 1 },
+    { type: "polarizer", tier: "LV", count: 1 }
+  ]
+};
+const clone = o => JSON.parse(JSON.stringify(o));
+let data = BUILTIN, dataName = BUILTIN_NAME, st = clone(EXAMPLE);
+try {
+  const saved = JSON.parse(localStorage.getItem(KEY) || "null");
+  if (saved && saved.st && saved.st.factory) st = saved.st;
+  if (saved && saved.data && saved.data.recipes && saved.data.framework) { data = saved.data; dataName = saved.dataName || "loaded files"; }
+} catch (e) {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ st, data: data === BUILTIN ? null : data, dataName })); } catch (e) {} };
+
+/* ---------- naming and formatting ---------- */
+const TIER_CSS = { ULV: "--t-lv", LV: "--t-lv", MV: "--t-mv", HV: "--t-hv", EV: "--t-ev" };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function itemName(id) {
+  const it = data.items && data.items[id];
+  if (it && it.name) return it.name;
+  const parts = id.split("_"), last = parts[parts.length - 1].toUpperCase();
+  if (SIM_TIERS.includes(last) || last === "LUV") { parts.pop(); return (last === "LUV" ? "LuV" : last) + " " + title(parts.join("_")); }
+  return title(id);
+}
+const machineName = t => (data.multiblocks && data.multiblocks[t] && data.multiblocks[t].name) || title(t);
+const recipeName = id => { const rc = (data.recipes || []).find(x => x.id === id); return rc ? itemName(Object.keys(rc.out)[0]) : id; };
+const fmtT = s => {
+  if (!isFinite(s)) return "∞";
+  if (s < 60) return (s < 10 ? s.toFixed(1) : Math.round(s)) + " s";
+  if (s < 3600) return (s / 60).toFixed(s < 600 ? 1 : 0) + " min";
+  return (s / 3600).toFixed(s < 36000 ? 1 : 0) + " h";
+};
+const fmtN = v => {
+  if (v >= 1e9) return (v / 1e9).toFixed(1) + "G";
+  if (v >= 1e6) return (v / 1e6).toFixed(1) + "M";
+  if (v >= 1e4) return (v / 1e3).toFixed(0) + "k";
+  return (Math.round(v * 10) / 10).toLocaleString();
+};
+const fmtEU = v => fmtN(v) + " EU";
+function groupLabel(g, G) {
+  if (!G || !G.ok) return esc(machineName(g.type));
+  const t = SIM_TIERS[G.tier];
+  const tag = `<span class="tier-tag" style="--tc: var(${TIER_CSS[t] || "--muted"})">${t}</span>`;
+  if (G.multiblock) return `${tag} ${esc(machineName(g.type))} <span class="ran">${esc(title(G.frame))}, ${G.counted}${G.built > G.counted ? " of " + G.built : ""} seg${G.built > 1 ? "s" : ""}${G.locked && G.lock ? ", locked to " + esc(recipeName(G.lock)) : ""}</span>`;
+  return `${tag} ${esc(machineName(g.type))}`;
+}
+
+/* ---------- inputs ---------- */
+const producible = () => {
+  const out = new Set(); (data.recipes || []).forEach(r => out.add(Object.keys(r.out)[0]));
+  return [...out].sort((a, b) => {
+    const ka = (data.items[a] || {}).kind === "component" ? 0 : 1, kb = (data.items[b] || {}).kind === "component" ? 0 : 1;
+    return ka - kb || itemName(a).localeCompare(itemName(b));
+  });
+};
+function renderGoals() {
+  const opts = producible();
+  document.getElementById("goals").innerHTML = st.goals.map((g, i) => `<div class="goal">
+    <input type="number" class="num-in" id="gq${i}" min="0" step="1" value="${g.qty}" aria-label="Quantity">
+    <select id="gi${i}" aria-label="Item">${opts.map(o => `<option value="${o}" ${o === g.item ? "selected" : ""}>${esc(itemName(o))}</option>`).join("")}</select>
+    <button type="button" class="btn x" data-rmgoal="${i}" aria-label="Remove goal">Remove</button>
+  </div>`).join("");
+}
+function renderFactory() {
+  const tb = document.querySelector("#factory tbody");
+  const fw = data.framework;
+  tb.innerHTML = st.factory.map((g, i) => {
+    const m = data.machines[g.type] || {};
+    let cfg = "";
+    if (m.kind === "multiblock") {
+      const frames = Object.keys(fw.frames);
+      const mods = Object.entries(fw.module_definitions);
+      const lockable = (data.recipes || []).filter(r => machineRuns(data, g.type, r));
+      cfg = `<div class="mach-cfg">
+        <div class="ctrl"><label for="ff${i}">Frame</label><select id="ff${i}">${frames.map(k => `<option value="${k}" ${k === g.frame ? "selected" : ""}>${esc(title(k))} (${fw.frames[k].tier}, cap ${fw.frames[k].segment_cap})</option>`).join("")}</select></div>
+        <div class="ctrl"><label for="fs${i}">Segments</label><input type="number" class="num-in" id="fs${i}" min="1" max="${fw.structure.max_segments_built || 32}" step="1" value="${g.segments}" style="width:64px"><span class="counted" id="fn${i}"></span></div>
+        ${mods.map(([k, mod]) => `<label class="chk"><input type="checkbox" id="fm${i}_${k}" ${(g.modules || []).includes(k) ? "checked" : ""} data-restructure> ${esc(title(k))} <span class="ran">${mod.unlocked_at}</span></label>`).join("")}
+        ${(g.modules || []).includes("specialization_lock") ? `<div class="ctrl"><label for="fl${i}">Locked to</label><select id="fl${i}">${lockable.map(r => `<option value="${r.id}" ${r.id === g.lock ? "selected" : ""}>${esc(itemName(Object.keys(r.out)[0]))}</option>`).join("")}</select></div>` : ""}
+      </div><div class="warnline" id="fw${i}"></div>`;
+    } else {
+      cfg = `<div class="mach-cfg"><div class="ctrl"><label for="ft${i}">Tier</label><select id="ft${i}">${(m.tiers || []).map(t => `<option ${t === g.tier ? "selected" : ""}>${t}</option>`).join("")}</select></div></div><div class="warnline" id="fw${i}"></div>`;
+    }
+    return `<tr>
+      <td class="mname">${esc(machineName(g.type))}${m.status === "new" ? ' <span class="pill new">new</span>' : ""}</td>
+      <td>${cfg}</td>
+      <td class="num"><input type="number" class="num-in" id="fc${i}" min="0" step="1" value="${g.count}" style="width:64px" aria-label="Count"></td>
+      <td><button type="button" class="btn x" data-rmmach="${i}" aria-label="Remove machine">Remove</button></td>
+    </tr>`;
+  }).join("");
+  document.getElementById("addBtns").innerHTML = Object.keys(data.machines || {}).map(k => `<button type="button" class="btn small" data-addmach="${k}">Add ${esc(machineName(k))}</button>`).join("");
+}
+function readInputs() {
+  const num = (id, fb) => { const el = document.getElementById(id); if (!el) return fb; const v = parseFloat(el.value); return isFinite(v) ? v : fb; };
+  st.goals.forEach((g, i) => { g.qty = num("gq" + i, g.qty); const s = document.getElementById("gi" + i); if (s) g.item = s.value; });
+  st.power = num("power", st.power);
+  st.factory.forEach((g, i) => {
+    const m = data.machines[g.type] || {};
+    g.count = num("fc" + i, g.count);
+    if (m.kind === "multiblock") {
+      const fr = document.getElementById("ff" + i); if (fr) g.frame = fr.value;
+      g.segments = num("fs" + i, g.segments);
+      g.modules = Object.keys(data.framework.module_definitions).filter(k => { const c = document.getElementById(`fm${i}_${k}`); return c && c.checked; });
+      const l = document.getElementById("fl" + i); if (l) g.lock = l.value;
+    } else {
+      const t = document.getElementById("ft" + i); if (t) g.tier = t.value;
+    }
+  });
+}
+function defaultGroup(type) {
+  const m = data.machines[type] || {};
+  if (m.kind === "multiblock") return { type, frame: Object.keys(data.framework.frames)[0], segments: 1, modules: [], lock: null, count: 1 };
+  return { type, tier: (m.tiers || ["LV"])[0], count: 1 };
+}
+
+/* ---------- results ---------- */
+let last = null;
+const rows = (obj, fmt, nameFn) => Object.entries(obj).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<tr><td>${esc(nameFn ? nameFn(k) : k.replace(/_/g, " "))}</td><td class="num">${fmt(v)}</td></tr>`).join("") || `<tr><td colspan="2" class="ran">None</td></tr>`;
+function render() {
+  const goals = st.goals.filter(g => g.qty > 0);
+  const r = simulate(data, st.factory, goals, { oc: st.oc, power: st.power });
+  last = r;
+  r.groups.forEach((G, i) => {
+    const el = document.getElementById("fw" + i); if (el) el.textContent = (G.warnings || []).join(" · ");
+    const n = document.getElementById("fn" + i);
+    if (n && G.multiblock) { n.textContent = `counts ${G.counted}, ${G.parallels} parallel${G.parallels > 1 ? "s" : ""}`; n.classList.toggle("short", G.built > G.counted); }
+  });
+
+  document.getElementById("errors").innerHTML = r.errors.length ? `<div class="alert">${r.errors.map(e => `<span>${esc(e.text)}</span>`).join("")}<span>Results below leave those recipes out.</span></div>` : "";
+
+  const bc = buildCost(data, st.factory);
+  const lim = { machines: "Machines", power: "Power", chain: "Step chain" }[r.limit];
+  const bName = r.bottleneck != null ? groupLabel(st.factory[r.bottleneck], r.groups[r.bottleneck]) : "";
+  const limSub = r.limit === "machines" ? bName : r.limit === "power" ? `needs ${fmtN(r.energy / (r.machineTime * 20 || 1))} EU/t to keep machines busy` : "one unit through the longest sequence of steps";
+  document.getElementById("tiles").innerHTML = `
+    <div class="tile lead"><span class="k">Time to finish</span><span class="v">${fmtT(r.total)}</span><span class="s">machines ${fmtT(r.machineTime)} · power ${fmtT(r.powerTime)} · chain ${fmtT(r.chainTime)}</span></div>
+    <div class="tile"><span class="k">Limited by</span><span class="v">${lim}</span><span class="s">${limSub}</span></div>
+    <div class="tile"><span class="k">Energy used</span><span class="v">${fmtEU(r.energy)}</span><span class="s">average draw ${fmtN(r.avgDraw)} EU/t of ${fmtN(st.power)} supplied</span></div>
+    <div class="tile"><span class="k">Peak draw</span><span class="v">${fmtN(r.peakDraw)} EU/t</span><span class="s">if every machine runs its hungriest recipe at once</span></div>
+    <div class="tile"><span class="k">LV motors built</span><span class="v">${fmtN(r.made.motor_lv || 0)}</span><span class="s">for the goals · ${fmtN(bc.lvMotors)} more to build the factory</span></div>`;
+
+  const maxLoad = Math.max(...r.groupStats.map(s => s.load), 1e-9);
+  document.querySelector("#machines tbody").innerHTML = r.groupStats.map((s, i) => {
+    const pct = r.total > 0 ? s.load / r.total : 0;
+    const ran = Object.entries(s.runs).sort((a, b) => b[1] - a[1]).map(([id, n]) => `${n}× ${esc(recipeName(id))}`).join(", ");
+    return `<tr>
+      <td>${groupLabel(st.factory[i], r.groups[i])}${st.factory[i].count > 1 ? ` <span class="ran">×${st.factory[i].count}</span>` : ""}</td>
+      <td class="num">${fmtT(s.load)}</td>
+      <td><div class="bar ${r.limit === "machines" && i === r.bottleneck ? "top" : ""}" title="${Math.round(pct * 100)}%"><i style="width:${(Math.min(1, s.load / maxLoad) * 100).toFixed(1)}%"></i></div><span class="ran">${Math.round(pct * 100)}% of finish time</span></td>
+      <td class="num">${fmtEU(s.energy)}</td>
+      <td class="ran">${ran || "idle"}</td>
+    </tr>`;
+  }).join("");
+
+  const recById = Object.fromEntries(data.recipes.map(x => [x.id, x]));
+  document.querySelector("#recipes tbody").innerHTML = Object.keys(r.runs).map(id => {
+    const rc = recById[id], out = Object.keys(rc.out)[0];
+    const where = r.assign[id] ? Object.entries(r.assign[id]).map(([gi, n]) => `${n}× ${groupLabel(st.factory[gi], r.groups[gi])}`).join("<br>") : `<span class="pill warn">no machine</span>`;
+    return `<tr>
+      <td>${esc(itemName(out))}${rc.circuit != null ? ` <span class="ran">circuit ${rc.circuit}</span>` : ""}</td>
+      <td><span class="pill ${rc.status}">${esc(rc.status)}</span></td>
+      <td class="num">${r.runs[id]}</td>
+      <td class="num">${r.made[out] || 0}</td>
+      <td class="num">${rc.eut} · ${rc.duration} s</td>
+      <td class="ran">${where}</td>
+    </tr>`;
+  }).join("");
+
+  document.querySelector("#matMetals tbody").innerHTML = rows(r.raw, fmtN);
+  document.querySelector("#matFluids tbody").innerHTML = rows(r.fluids, fmtN);
+  document.querySelector("#matOther tbody").innerHTML = rows(r.other, fmtN, itemName);
+  document.querySelector("#matByp tbody").innerHTML = rows(r.byproducts, fmtN, itemName);
+
+  const partName = k => {
+    if (k.startsWith("controller_")) return machineName(k.slice(11)) + " controller";
+    if (k.startsWith("casing_")) return title(k.slice(7)) + " casing";
+    if (k.startsWith("module_")) return title(k.slice(7)) + " module";
+    const core = Object.values(data.multiblocks || {}).find(m => m.core.id === k);
+    return core ? core.core.name : itemName(k);
+  };
+  document.querySelector("#bcParts tbody").innerHTML = rows(bc.need, fmtN, partName);
+  document.querySelector("#bcMetals tbody").innerHTML = rows(bc.raw, fmtN);
+  document.querySelector("#bcOther tbody").innerHTML = rows(Object.assign({}, bc.fluids, bc.other), fmtN, itemName);
+
+  const ck = checks(data);
+  const conf = ck.conflicts.length
+    ? `<ul>${ck.conflicts.map(c => `<li><b>${esc(title(c.machine))}:</b> ${c.recipes.map(x => esc(recipeName(x))).join(", ")} share the same inputs. <span class="pill ${c.resolved ? "new" : "warn"}">${c.resolved ? "solved by circuits" : "unsolved"}</span></li>`).join("")}</ul>`
+    : `<p class="ok-line">No two recipes in the same machine type accept the same inputs.</p>`;
+  const bus = ck.bus.length
+    ? `<ul>${ck.bus.map(b => `<li><b>${esc(recipeName(b.recipe))}</b> takes ${b.inputs} items; a ${b.tier} bus holds ${b.slots}. Use pooled buses, or one ${b.singleBusTier} bus for a distinct bus.</li>`).join("")}</ul>`
+    : `<p class="ok-line">Every recipe fits in one input bus of its tier.</p>`;
+  document.getElementById("checks").innerHTML = `<div class="panel"><span class="lbl">Recipe conflicts</span>${conf}</div><div class="panel"><span class="lbl">Input bus sizes</span>${bus}</div>`;
+}
+function syncSegs() { document.querySelectorAll("#ocSeg button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.oc === st.oc))); }
+function renderAll() {
+  document.getElementById("srcName").textContent = `${dataName}${data.meta ? " · " + data.meta.version : ""}`;
+  document.getElementById("power").value = st.power;
+  syncSegs(); renderGoals(); renderFactory(); render();
+}
+
+/* ---------- loading design files ---------- */
+function mergeLoaded(parsed, name) {
+  const next = clone(data);
+  if (parsed.framework && parsed.recipes) return { data: parsed, name };                       // merged data.json
+  if (parsed.framework && parsed.machines && parsed.builds) {                                   // multiblocks.yaml
+    next.framework = parsed.framework; next.framework_builds = parsed.builds; next.multiblocks = parsed.machines;
+    next.meta = Object.assign({}, next.meta, { multiblocks_version: parsed.meta && parsed.meta.version });
+    return { data: next, name: dataName.replace(/ \+ .*$/, "") + " + " + name };
+  }
+  if (parsed.items && parsed.machines && Array.isArray(parsed.recipes)) {                       // a slice file
+    next.items = parsed.items; next.machines = parsed.machines; next.recipes = parsed.recipes;
+    next.meta = Object.assign({}, next.meta, { version: parsed.meta && parsed.meta.version });
+    return { data: next, name: name + " + " + (dataName.split(" + ")[1] || "multiblocks.yaml") };
+  }
+  throw new Error("Expected a slice file (items, machines, recipes) or multiblocks.yaml (framework, machines, builds).");
+}
+
+/* ---------- events ---------- */
+document.addEventListener("input", e => { if (e.target.closest("#goals, #factory") || e.target.id === "power") { readInputs(); save(); render(); } });
+document.addEventListener("change", e => {
+  if (!e.target.closest("#goals, #factory")) return;
+  readInputs(); save();
+  if (e.target.hasAttribute("data-restructure")) renderFactory();
+  render();
+});
+document.addEventListener("click", e => {
+  const t = e.target.closest("button"); if (!t) return;
+  if (t.dataset.rmgoal != null) { readInputs(); st.goals.splice(+t.dataset.rmgoal, 1); save(); renderGoals(); render(); }
+  if (t.dataset.rmmach != null) { readInputs(); st.factory.splice(+t.dataset.rmmach, 1); save(); renderFactory(); render(); }
+  if (t.dataset.addmach) { readInputs(); st.factory.push(defaultGroup(t.dataset.addmach)); save(); renderFactory(); render(); }
+  if (t.dataset.oc) { st.oc = +t.dataset.oc; syncSegs(); save(); render(); }
+});
+document.getElementById("addGoal").addEventListener("click", () => { readInputs(); st.goals.push({ item: producible()[0], qty: 1 }); save(); renderGoals(); render(); });
+const toast = (id, msg) => { const t = document.getElementById(id); t.textContent = msg; setTimeout(() => { if (t.textContent === msg) t.textContent = ""; }, 3000); };
+document.getElementById("resetBtn").addEventListener("click", () => { st = clone(EXAMPLE); save(); renderAll(); toast("toast", "Reset to the example factory"); });
+document.getElementById("srcReset").addEventListener("click", () => { data = BUILTIN; dataName = BUILTIN_NAME; save(); renderAll(); toast("srcMsg", "Using the built-in design files"); });
+document.getElementById("fileIn").addEventListener("change", e => {
+  const file = e.target.files && e.target.files[0]; if (!file) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    try {
+      const text = String(fr.result);
+      const parsed = /\.json$/i.test(file.name) ? JSON.parse(text) : jsyaml.load(text);
+      const m = mergeLoaded(parsed, file.name);
+      data = m.data; dataName = m.name;
+      st.factory = st.factory.filter(g => data.machines[g.type]);
+      save(); renderAll(); toast("srcMsg", `Loaded ${file.name}`);
+    } catch (err) { const el = document.getElementById("srcMsg"); el.style.color = "var(--warn)"; el.textContent = `Couldn't load ${file.name}. ${err.message}`; setTimeout(() => { el.style.color = ""; }, 4000); }
+    e.target.value = "";
+  };
+  fr.readAsText(file);
+});
+document.getElementById("copyBtn").addEventListener("click", () => {
+  if (!last) return;
+  const r = last;
+  const lines = [
+    `Design data: ${dataName}`,
+    `Goals: ${st.goals.filter(g => g.qty > 0).map(g => `${g.qty} ${itemName(g.item)}`).join(", ")}`,
+    `Power: ${st.power} EU/t, ${st.oc === 4 ? "perfect" : "standard"} overclocking`,
+    `Time: ${fmtT(r.total)} (machines ${fmtT(r.machineTime)}, power ${fmtT(r.powerTime)}, chain ${fmtT(r.chainTime)}); limited by ${r.limit}`,
+    `Energy: ${fmtEU(r.energy)}, average ${fmtN(r.avgDraw)} EU/t, peak ${fmtN(r.peakDraw)} EU/t`,
+    "Machines:",
+    ...r.groupStats.map((s, i) => `  ${groupLabel(st.factory[i], r.groups[i]).replace(/<[^>]+>/g, "")} x${st.factory[i].count}: busy ${fmtT(s.load)}`),
+    ...(r.errors.length ? ["Problems:", ...r.errors.map(e => "  " + e.text)] : []),
+    "Factory JSON:", JSON.stringify(st.factory)
+  ];
+  const text = lines.join("\n"), out = document.getElementById("copyOut");
+  const fallback = () => { out.value = text; out.hidden = false; out.focus(); out.select(); toast("toast", "Select all and copy the text below"); };
+  try { navigator.clipboard.writeText(text).then(() => { out.hidden = true; toast("toast", "Copied. Paste it into a chat to share."); }, fallback); } catch (err) { fallback(); }
+});
+renderAll();
+</script>
