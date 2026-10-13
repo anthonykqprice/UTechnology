@@ -1,0 +1,6 @@
+sleep 5
+utspike machine 1 -58 0
+utspike research grant spiketeam
+utspike research list
+save-all flush
+stop

@@ -93,6 +93,10 @@ public final class ResearchCommands {
                 team = manager.getTeamByID(UUID.fromString(arg));
             } catch (IllegalArgumentException ignored) {}
         }
+        if (team.isEmpty()) { // display name, e.g. "spiketeam" (getTeamByName wants the short name "spiketeam#xxxx")
+            team = manager.getTeams().stream().filter(t -> t.getName().getString().equalsIgnoreCase(arg)).findFirst()
+                    .map(t -> (Team) t);
+        }
         if (team.isEmpty()) {
             var player = source.getServer().getPlayerList().getPlayerByName(arg);
             if (player != null) team = manager.getTeamForPlayer(player);
