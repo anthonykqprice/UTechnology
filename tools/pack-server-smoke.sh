@@ -49,6 +49,9 @@ done
 if grep -q 'Done (' server.out; then
   echo "utechkit check" >&3; sleep 3; echo "stop" >&3
 fi
+# give the server 2 minutes to stop, then kill it
+for _ in $(seq 1 120); do kill -0 "$pid" 2>/dev/null || break; sleep 1; done
+kill -9 "$pid" 2>/dev/null || true
 wait "$pid" || true
 exec 3>&-; rm -f "$fifo"
 log=logs/latest.log

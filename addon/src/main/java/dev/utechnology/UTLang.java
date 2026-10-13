@@ -20,7 +20,7 @@ public final class UTLang {
         lang("utechnology.module.removed", "Removed %s");
         lang("utechnology.retrofit.same_frame", "The machine already has this frame");
         lang("utechnology.retrofit.not_enough_kits", "Retrofitting this machine takes %s kits");
-        lang("utechnology.retrofit.done", "Used %s kits: the machine now has a %s frame");
+        lang("utechnology.retrofit.done", "Used %s kits: the frame is now %s");
         lang("utechnology.display.frame", "Frame: %s (max %s)");
         lang("utechnology.display.segments", "Segments: %s counted of %s built (frame cap %s)");
         lang("utechnology.display.over_cap", "Build a better frame to use all segments");

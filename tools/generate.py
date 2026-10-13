@@ -239,7 +239,9 @@ def starter_kits(d, nums):
         if key == "fluids":
             items += fluids_extra
         if key == "power_real":
-            energy = nums["estimate"]["with_multiblocks"]["energy_eu"]
+            # enough for the goal in either reference factory (single blocks use more); building the factory
+            # is expected on creative power (docs/prototype-test.md)
+            energy = max(e["energy_eu"] for e in nums["estimate"].values())
             items.append([kit["fuel"], math.ceil(energy * margin / kit["eu_per_bucket"])])
         kits.append([kit["name"], items])
     return kits
@@ -286,9 +288,12 @@ function utechGiveKits(player) {{
 }}
 
 PlayerEvents.loggedIn(event => {{
-  const player = event.player
-  if (player.persistentData.getBoolean('utechnology_kits')) return
-  player.persistentData.putBoolean('utechnology_kits', true)
+  // The flag lives in the server's saved data, keyed by player: Forge doesn't copy a player's persistentData
+  // to the new player entity after death, so a flag there would give the kits again after every death.
+  var player = event.player
+  var key = 'utechnology_kits_' + player.uuid
+  if (event.server.persistentData.getBoolean(key)) return
+  event.server.persistentData.putBoolean(key, true)
   utechGiveKits(player)
   player.tell('UTechnology prototype: your kits are in your inventory. See docs/prototype-test.md.')
 }})

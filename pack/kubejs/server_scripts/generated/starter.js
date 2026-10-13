@@ -8,29 +8,29 @@ const UTECH_KITS = [
   ["Materials", [
     ["gtceu:lv_assembler", 3],
     ["gtceu:advanced_integrated_circuit", 11],
-    ["gtceu:basic_electronic_circuit", 47],
+    ["gtceu:basic_electronic_circuit", 59],
     ["gtceu:good_electronic_circuit", 9],
-    ["gtceu:aluminium_frame", 42],
-    ["gtceu:stainless_steel_frame", 42],
-    ["gtceu:steel_frame", 138],
+    ["gtceu:aluminium_frame", 132],
+    ["gtceu:stainless_steel_frame", 66],
+    ["gtceu:steel_frame", 168],
     ["gtceu:small_aluminium_gear", 3],
     ["gtceu:small_stainless_steel_gear", 14],
-    ["gtceu:small_steel_gear", 42],
+    ["gtceu:small_steel_gear", 54],
     ["gtceu:lv_machine_hull", 2],
     ["gtceu:mv_machine_hull", 3],
     ["gtceu:aluminium_ingot", 300],
-    ["minecraft:copper_ingot", 1011],
+    ["minecraft:copper_ingot", 1131],
     ["gtceu:cupronickel_ingot", 618],
     ["gtceu:electrum_ingot", 186],
     ["minecraft:gold_ingot", 30],
     ["gtceu:silver_ingot", 93],
     ["gtceu:stainless_steel_ingot", 182],
-    ["gtceu:steel_ingot", 1604],
-    ["gtceu:tin_ingot", 509],
+    ["gtceu:steel_ingot", 1832],
+    ["gtceu:tin_ingot", 605],
     ["gtceu:lv_lathe", 2],
-    ["gtceu:aluminium_plate", 267],
-    ["gtceu:stainless_steel_plate", 299],
-    ["gtceu:steel_plate", 708],
+    ["gtceu:aluminium_plate", 807],
+    ["gtceu:stainless_steel_plate", 443],
+    ["gtceu:steel_plate", 888],
     ["gtceu:stainless_steel_ring", 93],
     ["gtceu:lv_wiremill", 2]]],
   ["Machines and hatches", [
@@ -80,7 +80,7 @@ const UTECH_KITS = [
     ["gtceu:tin_single_cable", 64],
     ["gtceu:copper_single_cable", 64],
     ["gtceu:gold_single_cable", 64],
-    ["gtceu:diesel_bucket", 13]]]
+    ["gtceu:diesel_bucket", 19]]]
 ]
 
 // Splits each kit into shulker boxes of 27 stacks.
@@ -109,9 +109,12 @@ function utechGiveKits(player) {
 }
 
 PlayerEvents.loggedIn(event => {
-  const player = event.player
-  if (player.persistentData.getBoolean('utechnology_kits')) return
-  player.persistentData.putBoolean('utechnology_kits', true)
+  // The flag lives in the server's saved data, keyed by player: Forge doesn't copy a player's persistentData
+  // to the new player entity after death, so a flag there would give the kits again after every death.
+  var player = event.player
+  var key = 'utechnology_kits_' + player.uuid
+  if (event.server.persistentData.getBoolean(key)) return
+  event.server.persistentData.putBoolean(key, true)
   utechGiveKits(player)
   player.tell('UTechnology prototype: your kits are in your inventory. See docs/prototype-test.md.')
 })

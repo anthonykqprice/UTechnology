@@ -17,13 +17,15 @@ goal:
 # The factory the materials are sized for (the simulator's build cost of these multiblocks, plus retrofit kits
 # and modules to try every upgrade once). Single-block machines are handed out ready-made (kits below).
 factory:
-  - { type: component_assembler, frame: steel, segments: 4, modules: [], count: 1 }
+  - { type: component_assembler, frame: steel, segments: 8, modules: [], count: 1 }   # 8 for the AE2 test (section 7)
   - { type: assembly_hall, frame: steel, segments: 2, modules: [], count: 1 }
   - { type: wire_drawing_line, frame: steel, segments: 2, modules: [], count: 1 }
   - { type: turning_line, frame: steel, segments: 2, modules: [], count: 1 }
 extra_builds:            # built items on top of the factory, to try upgrades
-  retrofit_kit_aluminium: 7
-  retrofit_kit_stainless_steel: 7
+  # docs/prototype-test.md section 5 retrofits the Component Assembler steel -> aluminium -> stainless steel ->
+  # back to aluminium (testing a downgrade). 11 kits per step at 8 segments (13 + 64 casings + 4 frame boxes).
+  retrofit_kit_aluminium: 22
+  retrofit_kit_stainless_steel: 11
   module_specialization_lock: 1
   module_efficiency_coil: 1
   module_batch_bus: 1

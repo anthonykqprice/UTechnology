@@ -47,7 +47,7 @@
   "utechnology.recipe.locked": "Specialization lock: locked to another recipe",
   "utechnology.recipe.no_data": "Upgrade data not loaded",
   "utechnology.retrofit.busy": "Wait until the machine finishes its recipe",
-  "utechnology.retrofit.done": "Used %s kits: the machine now has a %s frame",
+  "utechnology.retrofit.done": "Used %s kits: the frame is now %s",
   "utechnology.retrofit.not_enough_kits": "Retrofitting this machine takes %s kits",
   "utechnology.retrofit.one_step": "Retrofit one frame at a time: use kits of the frame just above or below %s",
   "utechnology.retrofit.same_frame": "The machine already has this frame",

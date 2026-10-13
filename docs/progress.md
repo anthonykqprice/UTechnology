@@ -10,7 +10,7 @@ language. If a session restarts, resume from "Current state".
   review" below). Committed on its own so CI checks it.
 - Phase 3 (items and single-block machines): done. Reviewed; fixes applied.
 - Phase 4 (upgradeable multiblocks): done. Reviewed; fixes applied (194 GameTests, JUnit green).
-- Phase 5 (test world, manual test list): built; full pack boots with kits checked; under review.
+- Phase 5 (test world, manual test list): built; full pack boots with kits checked; reviewed and fixed.
 - Branch: `claude/gifted-hawking-pmc94i` (one branch for all five phases, one PR at the end).
 
 ## How to run things (from the repository root)
@@ -240,7 +240,7 @@ frame voltage; only inputs and output space limit parallels. Recorded as decisio
 - **Kits, not a custom world**: `design/prototype.yaml` defines the test world. The generator asks the simulator
   what the goal (4 each of HV robot arms, conveyors and pistons) and the starter factory cost in supplied
   materials, adds 50%, and writes `pack/kubejs/server_scripts/generated/starter.js`. Every player gets the kits
-  once on first join as labelled shulker boxes (10 boxes): materials, machines and hatches, AE2, creative
+  once on first join as labelled shulker boxes (11 boxes): materials, machines and hatches, AE2, creative
   power, fluids, and real LV-HV power. `/utechkit` gives them again. This is a one-time script, not a hot path.
 - **Real power** is real generators (LV, MV, HV combustion) and cables, with diesel buckets sized by the
   simulator from the goal's energy (480 EU per mB). **Rubber** (about 155 buckets' worth) comes from creative
@@ -255,5 +255,14 @@ frame voltage; only inputs and output space limit parallels. Recorded as decisio
   `/utechkit check`, which builds every kit box and checks every item exists, and fails on KubeJS errors.
   This found a real bug before anyone played: KubeJS's script engine rejects `const` inside loops on the
   second pass, so kits with more than one box would have failed to give.
+  What the test can't cover: the first-join gift itself (a dedicated server in CI has no player joining), so that
+  is in the manual checklist. The first-join flag is kept in the server's saved data per player, not on the
+  player, because Forge doesn't carry a player's own data over after death.
+- **Phase 5 review fixes:** kits now cover the checklist's whole retrofit path (steel to aluminium to stainless
+  and back to aluminium, with an 8-segment Component Assembler); diesel covers the goal in either reference
+  factory; the checklist says to use Survival for retrofits (Creative skips kit use), that build times overclock,
+  that retrofit messages show above the hotbar, and how products get back into AE2; the retrofit message reads
+  "Used N kits: the frame is now Aluminium"; the pack-server CI job has a 30-minute limit and the smoke test
+  can't hang on shutdown.
 - **`docs/progression.md`**: the mod/tier table CLAUDE.md asks for. AE2 isn't gated to LV by recipes yet
   (the prototype hands it out); that's milestone 1 work.

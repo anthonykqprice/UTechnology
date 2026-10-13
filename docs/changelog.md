@@ -8,6 +8,8 @@
 - `tools/pack-server-smoke.sh` and a CI job: the exported pack boots on a dedicated server with all
   server-side mods and the kits check out.
 - Docs: `prototype-test.md` (manual checklist), `prototype-estimate.md` (generated), `progression.md`.
+- Review fixes: kits sized for the full retrofit path and an 8-segment Component Assembler; diesel for either
+  reference factory; first-join flag survives death; clearer retrofit message; CI timeout on the pack server job.
 
 ### 2026-10-13: Prototype phase 4 (upgradeable multiblocks)
 - Component Assembler, Assembly Hall, Wire Drawing Line and Turning Line on one base class: frames,
