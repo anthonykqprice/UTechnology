@@ -8,7 +8,8 @@ language. If a session restarts, resume from "Current state".
   release, CI actions updated and the runner pinned, sturdier scripts, changelog). CI green.
 - Phase 2 (data pipeline and validator): done. Reviewed; the review's findings are fixed (see "Phase 2
   review" below). Committed on its own so CI checks it.
-- Phase 3 (items and single-block machines): built, 13 GameTests green locally; under review.
+- Phase 3 (items and single-block machines): done. Reviewed; fixes applied.
+- Phase 4 (upgradeable multiblocks): in progress.
 - Branch: `claude/gifted-hawking-pmc94i` (one branch for all five phases, one PR at the end).
 
 ## How to run things (from the repository root)
@@ -126,7 +127,8 @@ Recorded in `design/multiblocks.yaml` → `decisions`:
   script adds them. The GameTests load that script, so they test what the pack ships.
 - **Placeholder art**: items borrow GTM and vanilla textures (stator coils use GTM's voltage coils), core
   blocks use GTM gearbox casing textures, and machines use GTM's wiremill and compressor overlays.
-- **Models, blockstates, loot tables and names** are written by data generation (Registrate) into
+- **Models, blockstates, names and the core blocks' loot tables** are written by data generation (Registrate)
+  into
   `addon/src/generated/resources` and committed. The generator finishes in a second but something in the
   mod stack keeps Java running afterwards, so `tools/run-datagen.sh` stops it once the files are written.
 - **GameTests** (`MachineTests`): each machine runs a recipe at its tier with the right duration and EU/t
@@ -134,3 +136,23 @@ Recorded in `design/multiblocks.yaml` → `decisions`:
   overclocks it to 100 at 480; MV press: bearings, 160 at 120; HV press overclocks to 80 at 480), and an
   LV winder refuses the MV-voltage recipe. `DesignTests` now checks all our IDs and recipes except the four
   multiblock controllers (phase 4).
+
+### Phase 3 review (independent agent) and what changed
+- JEI category titles: the recipe types now have names ("Coil Winder", "Bearing Press").
+- The creative tab was empty (GTM's tab helper doesn't fill it on its own); it now lists all our items,
+  blocks and machines, and its title is a translatable name.
+- Machine GameTests now measure the real number of ticks from start to output, check amperage, and the
+  "LV can't run an MV recipe" test also checks nothing was consumed.
+- New `AssetTests` GameTest: every item, block and recipe type of ours has a name and model in the jar. This
+  is how CI notices a forgotten `tools/run-datagen.sh` (the test server never loads client assets).
+- `tools/run-datagen.sh`: clears the output first (so removed content leaves nothing behind), fails fast
+  on errors, stops its Java processes even if interrupted.
+- **Stack sizes** (my choice, not in the design): parts and kits stack to 64, modules to 16.
+- **Core blocks** are pickaxe blocks with no tool tier for now; revisit with the structure work.
+
+### Phase 4 decision from Anthony: free parallels
+GTM's own rule limits parallels to voltage ÷ recipe EU/t, which with frames capping voltage would make
+segments nearly useless at the frame's tier. Anthony's answer: **parallels don't consume additional power**.
+A machine runs all its parallels at one recipe's EU/t; overclocking is judged on one recipe against the
+frame voltage; only inputs and output space limit parallels. Recorded as decision `free-parallels` in
+`design/multiblocks.yaml`; the simulator now counts energy the same way (energy per craft ÷ parallels).

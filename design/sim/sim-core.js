@@ -79,7 +79,7 @@ function capability(data, G, r, oc) {
   const n = G.tier - rt;
   const dur = r.duration * dmul / Math.pow(oc, n);     // seconds per run: modules, then overclocking
   const eut = r.eut * G.energy * Math.pow(4, n);       // EU/t while running
-  const energyPerRun = eut * dur * 20;                 // EU per run
+  const energyPerRun = eut * dur * 20 / G.parallels;  // EU per run: parallels share one recipe's power (decision free-parallels)
   const perRun = dur / G.parallels;                    // machine-seconds per run with parallels
   return { overclocks: n, dur, eut, energyPerRun, runTime: dur, perRun };
 }
@@ -267,7 +267,7 @@ function simulate(data, factory, goals, settings) {
     energy += n * cap.energyPerRun;
     groupStats[gi].energy += n * cap.energyPerRun;
     groupStats[gi].runs[id] = n;
-    groupStats[gi].peakEut = Math.max(groupStats[gi].peakEut, cap.eut * G.parallels * G.count);
+    groupStats[gi].peakEut = Math.max(groupStats[gi].peakEut, cap.eut * G.count); // parallels draw no extra power
     for (const u in G.upkeep) upkeep[u] = (upkeep[u] || 0) + G.upkeep[u] * n;
   }
 

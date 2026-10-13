@@ -12,6 +12,8 @@ import com.lowdragmc.lowdraglib.gui.texture.ProgressTexture;
 
 import dev.utechnology.UTechnology;
 
+import static dev.utechnology.UTechnology.REGISTRATE;
+
 import net.minecraft.core.registries.BuiltInRegistries;
 
 /** Recipe types of this pack's single-block machines. Their recipes come from the pack's KubeJS scripts. */
@@ -27,6 +29,12 @@ public final class UTRecipeTypes {
         GTRegistries.register(BuiltInRegistries.RECIPE_SERIALIZER, type.registryName, new GTRecipeSerializer());
         GTRegistries.RECIPE_TYPES.register(type.registryName, type);
         return type;
+    }
+
+    static {
+        // JEI category titles and machine UI text use the type's registry name as a lang key
+        REGISTRATE.addRawLang("utechnology.coil_winder", "Coil Winder");
+        REGISTRATE.addRawLang("utechnology.bearing_press", "Bearing Press");
     }
 
     public static void init() {

@@ -16,5 +16,8 @@
   "item.utechnology.precision_bearing": "Precision Bearing",
   "item.utechnology.specialization_lock": "Specialization Lock",
   "item.utechnology.stainless_steel_retrofit_kit": "Stainless Steel Retrofit Kit",
-  "item.utechnology.steel_retrofit_kit": "Steel Retrofit Kit"
+  "item.utechnology.steel_retrofit_kit": "Steel Retrofit Kit",
+  "itemGroup.utechnology.utechnology": "UTechnology",
+  "utechnology.bearing_press": "Bearing Press",
+  "utechnology.coil_winder": "Coil Winder"
 }

@@ -36,8 +36,8 @@ import java.util.*;
 public class DesignTests {
 
     /**
-     * Our content that later prototype phases add. IDs (and recipes using them) starting with one of these are
-     * skipped until then. Empty once every phase is built.
+     * Our content that later prototype phases add. These exact IDs (and recipes using them) are skipped until
+     * then. Empty once every phase is built.
      */
     static final List<String> NOT_YET_BUILT = List.of(
             // multiblock controllers: phase 4

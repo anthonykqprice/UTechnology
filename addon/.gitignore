@@ -6,3 +6,4 @@ run-server/
 *.iml
 .idea/
 run-data/
+src/generated/resources/.cache/

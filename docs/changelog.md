@@ -7,7 +7,9 @@
   bearing press (MV-HV) with their recipe types. Recipes come from the generated KubeJS script.
 - Placeholder textures borrowed from GTM and vanilla; models and lang from data generation
   (`tools/run-datagen.sh`).
-- GameTests: each machine runs its recipe at the right voltage and duration.
+- GameTests: each machine runs its recipe at the right voltage and duration (measured in ticks); every item,
+  block and recipe type has a name and model.
+- Design: parallels draw no extra power (decision free-parallels); simulator updated.
 
 ### 2026-10-13: Prototype phase 2 (data pipeline and validator)
 - `design/ids.yaml`: design names mapped to game IDs.

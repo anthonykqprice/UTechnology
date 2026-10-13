@@ -67,7 +67,7 @@ framework:
       16 must be measured before it ships.
 
   segments:
-    parallels: one per counted segment
+    parallels: one per counted segment; parallels draw no extra power (decision free-parallels)
     counted: min(segments built, frame segment_cap)
     over_cap: >-
       A structure longer than its cap still forms, runs at the cap, and shows "build
@@ -287,6 +287,18 @@ decisions:
     why: >-
       Follows the slice's bootstrap rule, so a tier-N upgrade can be made before the
       player has tier-N power, and assembler recipes work with AE2 autocrafting.
+  - id: free-parallels
+    decided: 2026-10-13
+    decision: >-
+      Parallels don't consume additional power. A machine running N parallels draws the
+      EU/t of one recipe (after modules and overclocking), so each parallel costs no
+      extra energy. Overclocking is judged on one recipe's EU/t against the frame's
+      voltage, and power never limits parallels; only inputs and output space do.
+    why: >-
+      GTM's built-in rule caps parallels at voltage / recipe EU/t, which with frames
+      capping voltage would make segments almost useless for recipes at the frame's
+      tier (a steel frame running LV motors would get 1 parallel at any length). Free
+      parallels make segments the growth path, and power stays a per-machine cost.
   - id: one-module-per-type
     decided: 2026-10-13
     decision: A machine holds at most one of each module type; extra copies are refused.

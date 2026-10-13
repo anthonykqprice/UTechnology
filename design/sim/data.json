@@ -993,7 +993,7 @@
    "Segment caps doubled from the slice's first draft (2/4/8 to 4/8/16) for more physical growth. The spike measured 37.5 \u00b5s per structure check at 8 segments; 16 must be measured before it ships."
   ],
   "segments": {
-   "parallels": "one per counted segment",
+   "parallels": "one per counted segment; parallels draw no extra power (decision free-parallels)",
    "counted": "min(segments built, frame segment_cap)",
    "over_cap": "A structure longer than its cap still forms, runs at the cap, and shows \"build a better frame to use all segments\". Players can build ahead.",
    "cost": "8 casings + 1 core block of the machine type."

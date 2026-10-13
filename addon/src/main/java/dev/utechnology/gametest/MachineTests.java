@@ -35,7 +35,9 @@ public class MachineTests {
     static final BlockPos POS = new BlockPos(2, 1, 2);
 
     static Item item(String id) {
-        return BuiltInRegistries.ITEM.get(new ResourceLocation(id));
+        Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(id));
+        if (item == net.minecraft.world.item.Items.AIR) throw new GameTestAssertException("no item " + id);
+        return item;
     }
 
     static SimpleTieredMachine place(GameTestHelper h, MachineDefinition def) {
@@ -59,21 +61,31 @@ public class MachineTests {
         return n;
     }
 
-    /** Runs a recipe and checks the running recipe's duration and EU/t, then the output. */
+    /**
+     * Runs a recipe and checks the running recipe's duration, EU/t and amperage, and that the output arrives
+     * that many ticks after the machine started (measured, not just read from the recipe).
+     */
     static void runs(GameTestHelper h, SimpleTieredMachine m, String recipeId, int ticks, long eut, Item out, int outCount) {
+        long[] started = { -1 };
         h.startSequence()
                 .thenWaitUntil(() -> {
                     if (!m.recipeLogic.isWorking()) throw new GameTestAssertException("not working");
+                    started[0] = h.getTick();
                 })
                 .thenExecute(() -> {
                     var r = m.recipeLogic.getLastRecipe();
                     if (!r.getId().toString().equals(recipeId)) throw new GameTestAssertException("running " + r.getId() + ", expected " + recipeId);
                     if (r.duration != ticks) throw new GameTestAssertException("duration " + r.duration + " != " + ticks);
-                    long v = RecipeHelper.getRealEUt(r).voltage();
-                    if (v != eut) throw new GameTestAssertException("EU/t " + v + " != " + eut);
+                    var e = RecipeHelper.getRealEUt(r);
+                    if (e.voltage() != eut) throw new GameTestAssertException("EU/t " + e.voltage() + " != " + eut);
+                    if (e.amperage() != 1) throw new GameTestAssertException("amperage " + e.amperage() + " != 1");
                 })
                 .thenWaitUntil(() -> {
                     if (count(m, out) != outCount) throw new GameTestAssertException("output " + count(m, out) + " != " + outCount);
+                })
+                .thenExecute(() -> {
+                    long took = h.getTick() - started[0];
+                    if (Math.abs(took - ticks) > 2) throw new GameTestAssertException("took " + took + " ticks, expected " + ticks);
                 })
                 .thenSucceed();
     }
@@ -107,7 +119,9 @@ public class MachineTests {
         var m = place(h, UTMachines.COIL_WINDER[GTValues.LV]);
         statorCoilHv(m);
         h.runAfterDelay(60, () -> {
-            if (m.recipeLogic.isWorking()) throw new GameTestAssertException("an LV machine ran an MV recipe");
+            if (m.recipeLogic.isWorking() || m.recipeLogic.getLastRecipe() != null)
+                throw new GameTestAssertException("an LV machine ran an MV recipe");
+            if (m.importItems.storage.getStackInSlot(1).getCount() != 4) throw new GameTestAssertException("inputs were used");
             h.succeed();
         });
     }
