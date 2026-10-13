@@ -1,0 +1,109 @@
+# The prototype test world (docs/prototype-plan.md, phase 5).
+# tools/generate.py turns this into pack/kubejs/server_scripts/generated/starter.js: on first join each player
+# gets the kits below as labelled shulker boxes, and /utechkit gives them again.
+#
+# Material amounts are not typed in: the generator asks the simulator (design/sim/sim-core.js) what the goal
+# and the starter factory cost in supplied items, then multiplies by `margin`.
+
+meta:
+  version: 0.1-draft
+
+# The simulator's example goal: what a play-through of docs/prototype-test.md produces.
+goal:
+  robot_arm_hv: 4
+  conveyor_hv: 4
+  piston_hv: 4
+
+# The factory the materials are sized for (the simulator's build cost of these multiblocks, plus retrofit kits
+# and modules to try every upgrade once). Single-block machines are handed out ready-made (kits below).
+factory:
+  - { type: component_assembler, frame: steel, segments: 8, modules: [], count: 1 }   # 8 for the AE2 test (section 7)
+  - { type: assembly_hall, frame: steel, segments: 2, modules: [], count: 1 }
+  - { type: wire_drawing_line, frame: steel, segments: 2, modules: [], count: 1 }
+  - { type: turning_line, frame: steel, segments: 2, modules: [], count: 1 }
+extra_builds:            # built items on top of the factory, to try upgrades
+  # docs/prototype-test.md section 5 retrofits the Component Assembler steel -> aluminium -> stainless steel ->
+  # back to aluminium (testing a downgrade). 11 kits per step at 8 segments (13 + 64 casings + 4 frame boxes).
+  retrofit_kit_aluminium: 22
+  retrofit_kit_stainless_steel: 11
+  module_specialization_lock: 1
+  module_efficiency_coil: 1
+  module_batch_bus: 1
+  coil_winder_lv: 1
+  coil_winder_mv: 1
+  bearing_press_mv: 1
+margin: 1.5              # materials x1.5, rounded up, for mistakes and experiments
+
+# Fixed kits. Items are game IDs (checked by /utechkit check on the full pack, and by a GameTest where the mod
+# is loaded in the addon's test server).
+kits:
+  machines:
+    name: "Machines and hatches"
+    items:
+      gtceu:lv_assembler: 2
+      gtceu:mv_assembler: 1
+      gtceu:lv_wiremill: 2
+      gtceu:lv_lathe: 2
+      gtceu:lv_polarizer: 2
+      gtceu:lv_input_bus: 12
+      gtceu:mv_input_bus: 8
+      gtceu:hv_input_bus: 4
+      gtceu:lv_output_bus: 8
+      gtceu:lv_input_hatch: 8
+      gtceu:lv_energy_input_hatch: 8
+      gtceu:mv_energy_input_hatch: 4
+      gtceu:hv_energy_input_hatch: 4
+      gtceu:auto_maintenance_hatch: 6
+      gtceu:steel_wrench: 1
+      gtceu:red_dye_spray_can: 1      # colour groups for AE2 (docs/prototype-test.md)
+      gtceu:blue_dye_spray_can: 1
+      gtceu:green_dye_spray_can: 1
+  ae2:
+    name: "AE2 autocrafting"
+    items:
+      ae2:controller: 1
+      ae2:drive: 1
+      ae2:item_storage_cell_64k: 2
+      ae2:fluid_storage_cell_64k: 2
+      ae2:pattern_provider: 12
+      ae2:interface: 2
+      ae2:fluix_smart_cable: 64
+      ae2:pattern_encoding_terminal: 1
+      ae2:crafting_terminal: 1
+      ae2:blank_pattern: 64
+      ae2:crafting_unit: 4
+      ae2:1k_crafting_storage: 2
+      ae2:energy_acceptor: 1
+      ae2:creative_energy_cell: 1
+  power_creative:
+    name: "Power: creative"
+    items:
+      gtceu:creative_energy: 2
+  fluids:
+    name: "Fluids"
+    # Rubber is the only big fluid need (about 155 buckets for the goal and factory), and the rubber chain is
+    # out of the prototype's scope, so it comes from creative tanks: put a bucket in a creative tank's slot to
+    # set its fluid. Lubricant comes as real buckets, sized by the simulator.
+    items:
+      gtceu:creative_tank: 3
+      gtceu:rubber_bucket: 2
+  power_real:
+    name: "Power: LV-HV generators"
+    items:
+      gtceu:lv_combustion: 4
+      gtceu:mv_combustion: 2
+      gtceu:hv_combustion: 2
+      gtceu:tin_single_cable: 64
+      gtceu:copper_single_cable: 64
+      gtceu:gold_single_cable: 64
+    # diesel buckets: enough for the goal's energy (from the simulator) at 480 EU per mB, times margin
+    fuel: gtceu:diesel_bucket
+    eu_per_bucket: 480000
+
+# Supplied items that need a concrete item in a kit (the design names a tag)
+concrete:
+  circuit_lv: gtceu:basic_electronic_circuit
+  circuit_mv: gtceu:good_electronic_circuit
+  circuit_hv: gtceu:advanced_integrated_circuit
+  lubricant: gtceu:lubricant_bucket        # 1000 mB each, goes in the fluids kit
+creative_supplied: [rubber_fluid]          # supplied by the fluids kit's creative tanks, not as items

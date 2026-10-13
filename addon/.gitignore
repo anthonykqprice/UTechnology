@@ -1,0 +1,10 @@
+.gradle/
+build/
+run/
+run-gametest/
+run-server/
+*.iml
+.idea/
+run-data/
+src/generated/resources/.cache/
+run-client/

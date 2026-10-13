@@ -270,13 +270,14 @@ recipes:
     in:  { rod_stainless_steel: 2, cable_gold_single: 2, plate_stainless_steel: 3, gear_small_stainless: 1, motor_hv: 1 }
     out: { piston_hv: 1 }
 
-  # ---- conveyors (stock; rubber variant) ----
+  # ---- conveyors (stock; rubber variant; GTM also has silicone and styrene-butadiene rubber versions) ----
   - id: conveyor_lv
     status: stock
     machine: assembler
     component: true
     eut: 30
     duration: 5
+    circuit: 1                 # stock GTM 7.5.3 (found by the stock-recipe GameTest)
     in:  { cable_tin_single: 1, motor_lv: 2 }
     fluid_in: { rubber_fluid: 864 }
     out: { conveyor_lv: 1 }
@@ -287,6 +288,7 @@ recipes:
     component: true
     eut: 30
     duration: 5
+    circuit: 1                 # stock GTM 7.5.3 (found by the stock-recipe GameTest)
     in:  { cable_copper_single: 1, motor_mv: 2 }
     fluid_in: { rubber_fluid: 864 }
     out: { conveyor_mv: 1 }
@@ -297,6 +299,7 @@ recipes:
     component: true
     eut: 30
     duration: 5
+    circuit: 1                 # stock GTM 7.5.3 (found by the stock-recipe GameTest)
     in:  { cable_gold_single: 1, motor_hv: 2 }
     fluid_in: { rubber_fluid: 864 }
     out: { conveyor_hv: 1 }
@@ -367,13 +370,28 @@ builds:
     tier: LV
     in: { hull_lv: 1, motor_lv: 2, wire_copper_single: 4, circuit_lv: 2 }
 
+  - id: coil_winder_mv
+    builds: coil_winder
+    tier: MV
+    in: { hull_mv: 1, motor_mv: 2, wire_cupronickel_double: 4, circuit_mv: 2 }
+
+  - id: coil_winder_hv
+    builds: coil_winder
+    tier: HV
+    in: { hull_hv: 1, motor_hv: 2, wire_electrum_double: 4, circuit_hv: 2 }
+
   - id: bearing_press_mv
     builds: bearing_press
     tier: MV
     in: { hull_mv: 1, piston_mv: 2, motor_mv: 1, circuit_mv: 2 }
 
+  - id: bearing_press_hv
+    builds: bearing_press
+    tier: HV
+    in: { hull_hv: 1, piston_hv: 2, motor_hv: 1, circuit_hv: 2 }
+
   # Multiblock controllers, cores, casings, retrofit kits and modules are in
-  # multiblocks.yaml.
+  # multiblocks.yaml. How every build is made: see build_rule in multiblocks.yaml.
 
 # ---------------------------------------------------------------------------
 # Decisions
@@ -416,6 +434,13 @@ decisions:
       non-blocking pattern providers working, so parallels raised by research fill
       without re-encoding patterns.
     revised: 2026-10-13 (first version banned conflicts)
+    gtm_note: >-
+      In GTM 7.5.3 a distinct input bus sees only its own slots, never a fluid hatch.
+      Recipes with fluids are kept apart with GTM's colour groups instead: a dyed input
+      bus (spray can) forms its colour's group, and every undyed hatch joins every colour
+      group. So fluid recipes go on dyed buses and share the machine's undyed fluid
+      hatches. tools/validate.py checks every multiblock against this
+      (docs/validation-report.md lists the groups).
   - id: per-machine-upgrades
     decided: 2026-10-13
     decision: >-
@@ -438,6 +463,22 @@ decisions:
       They duplicate our upgradeable multiblocks and would make them obsolete
       later. large_cutter also switches between two recipe types, which the pack's
       rules don't allow.
+  - id: hard-mode-scope
+    decided: 2026-10-13
+    decision: >-
+      GTM's hard recipe options are on (circuits, controllers, redstone, tools and
+      armor, bricks, misc, plus the defaults). Wood nerfs, hard dye recipes and
+      removeVanillaBlockRecipes stay off.
+    why: On a skyblock start those mostly add tedium without a new mechanic.
+  - id: higher-tier-machine-builds
+    decided: 2026-10-13
+    decision: >-
+      MV and HV coil winders and the HV bearing press follow the LV and MV builds:
+      that tier's hull, motors or pistons and circuits, and for coil winders the wire
+      they wind at that tier (cupronickel at MV, electrum at HV).
+    why: >-
+      The prototype plan needs these tiers and the design only gave the first build
+      of each machine. Numbers are first guesses like the others.
   - id: team-research
     status: superseded by per-machine-upgrades
     decided: 2026-10-13

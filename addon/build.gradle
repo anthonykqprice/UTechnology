@@ -1,0 +1,129 @@
+// UTechnology addon for GregTech CEu Modern 7.5.3 (Forge 1.20.1).
+// Build setup adapted from GregTechCEu/GregTech-Addon-Template (LGPLv3).
+plugins {
+    id 'net.neoforged.moddev.legacyforge' version '2.0.91'
+}
+
+sourceSets.main.resources { srcDir 'src/generated/resources'; exclude '.cache' }
+
+version = mod_version
+group = maven_group
+base { archivesName = archives_base_name }
+java { toolchain.languageVersion = JavaLanguageVersion.of(17) }
+
+repositories {
+    mavenCentral()
+    exclusiveContent {
+        forRepository { maven { url = 'https://maven.gtceu.com' } }
+        filter { includeGroup 'com.gregtechceu.gtceu' }
+    }
+    exclusiveContent { // LDLib, Configuration
+        forRepository { maven { url = 'https://maven.firstdark.dev/snapshots/' } }
+        filter { includeGroup 'com.lowdragmc.ldlib'; includeGroup 'dev.toma.configuration' }
+    }
+    exclusiveContent {
+        forRepository { maven { url = 'https://maven.tterrag.com/' } }
+        filter { includeGroup 'com.tterrag.registrate' }
+    }
+    exclusiveContent { // KubeJS, Rhino, Architectury: the exact files the pack uses
+        forRepository { maven { url = 'https://api.modrinth.com/maven' } }
+        filter { includeGroup 'maven.modrinth' }
+    }
+}
+
+legacyForge {
+    version = "${minecraft_version}-${forge_version}"
+    parchment {
+        mappingsVersion = project.mapping_version
+        minecraftVersion = project.minecraft_version
+    }
+    runs {
+        configureEach {
+            systemProperty 'forge.logging.console.level', 'info'
+            systemProperty 'forge.enabledGameTestNamespaces', project.mod_id
+        }
+        // A client for looking at UI issues (EMI pages, machine screens). The pack's real client is Prism + the .mrpack.
+        client {
+            client()
+            gameDirectory = project.file('run-client')
+            // -PquickPlay=<world> opens that world from run-client/saves straight away
+            if (project.hasProperty('quickPlay')) programArguments.addAll('--quickPlaySingleplayer', project.quickPlay)
+        }
+        server {
+            server()
+            gameDirectory = project.file('run-server')
+            programArguments.addAll('--nogui')
+        }
+        gameTestServer {
+            type = 'gameTestServer'
+            gameDirectory = project.file('run-gametest')
+        }
+        // Writes models, blockstates, loot tables and lang for our blocks, items and machines (Registrate).
+        // Output is committed in src/generated/resources; rerun after adding content.
+        data {
+            data()
+            gameDirectory = project.file('run-data')
+            programArguments.addAll('--mod', project.mod_id, '--all',
+                    '--output', file('src/generated/resources/').getAbsolutePath(),
+                    '--existing', file('src/main/resources/').getAbsolutePath(),
+                    '--existing-mod', 'gtceu')
+        }
+    }
+    mods {
+        "${mod_id}" { sourceSet(sourceSets.main) }
+    }
+}
+
+dependencies {
+    compileOnly 'org.jetbrains:annotations:26.0.1'
+    compileOnly 'org.projectlombok:lombok:1.18.24'
+    annotationProcessor 'org.projectlombok:lombok:1.18.24'
+
+    modImplementation("com.gregtechceu.gtceu:gtceu-${minecraft_version}:${gtceu_version}:slim") { transitive = false }
+    modImplementation("com.lowdragmc.ldlib:ldlib-forge-${minecraft_version}:${ldlib_version}") { transitive = false }
+    modImplementation("com.tterrag.registrate:Registrate:${registrate_version}")
+    modImplementation("dev.toma.configuration:configuration-forge-${minecraft_version}:${configuration_version}")
+
+    modRuntimeOnly("maven.modrinth:kubejs:${kubejs_modrinth}") { transitive = false }
+    modRuntimeOnly("maven.modrinth:rhino:${rhino_modrinth}") { transitive = false }
+    modRuntimeOnly("maven.modrinth:architectury-api:${architectury_modrinth}") { transitive = false }
+    modRuntimeOnly("maven.modrinth:emi:${emi_modrinth}") { transitive = false }
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+    testImplementation 'com.google.code.gson:gson:2.10.1' // same version Minecraft 1.20.1 ships
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test', Test) { useJUnitPlatform() }
+
+// GameTests, the dev server and the dev client load the pack's KubeJS scripts and configs, exactly as the pack ships them.
+['run-gametest', 'run-server', 'run-client'].each { runDir ->
+    def name = runDir.replace('run-', '').capitalize()
+    def kjs = tasks.register("syncKubeJS${name}", Sync) {
+        from rootProject.file('../pack/kubejs')
+        into project.file("${runDir}/kubejs")
+        preserve { include 'config/**', 'exported/**', 'README.txt' } // written by KubeJS itself
+    }
+    // a Copy, not a Sync: the run folder also holds config files the mods write themselves
+    def cfg = tasks.register("copyPackConfig${name}", Copy) {
+        from rootProject.file('../pack/config')
+        into project.file("${runDir}/config")
+    }
+    def runTask = [ 'run-gametest': 'runGameTestServer', 'run-server': 'runServer', 'run-client': 'runClient' ][runDir]
+    tasks.matching { it.name == runTask }.configureEach {
+        dependsOn kjs, cfg
+    }
+}
+tasks.matching { it.name == 'runServer' }.configureEach { standardInput = System.in }
+
+tasks.named('processResources', ProcessResources).configure {
+    var props = [mod_id: mod_id, version: version, mod_name: mod_name, mod_license: mod_license,
+                 gtceu_version: gtceu_version]
+    inputs.properties(props)
+    filesMatching('META-INF/mods.toml') { expand props }
+}
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.compilerArgs << '-Xlint:-removal' // Forge 1.20.1 marks new ResourceLocation(String) for removal; it's still the API here
+    options.release.set(17)
+}

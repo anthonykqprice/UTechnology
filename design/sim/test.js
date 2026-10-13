@@ -16,9 +16,12 @@ assert.strictEqual(e.byproducts.dust_small_steel, 44);
 assert.strictEqual(e.runs.wire_copper_single, Math.ceil((24 + 6) / 2));
 assert.strictEqual(e.supplied.rubber_fluid, (12 + 6 + 2) * 144); // tin, copper, silver cables
 
-// 2. ULV recipe (copper wire, 7 EU/t) in an LV wiremill: one overclock
+// 2. ULV recipe (copper wire, 7 EU/t) in an LV wiremill: GTM gives ULV recipes one overclock fewer, so none here;
+//    an MV wiremill overclocks it once (63 ticks -> 31, truncated)
 let r = simulate(data, [{ type: "wiremill", tier: "LV", count: 1 }], [{ item: "wire_copper_single", qty: 2 }], S);
-near(r.total, 3.15 / 2, "ulv oc time"); near(r.energy, 28 * (3.15 / 2) * 20, "ulv oc energy");
+near(r.total, 3.15, "ulv no oc time"); near(r.energy, 7 * 3.15 * 20, "ulv no oc energy");
+r = simulate(data, [{ type: "wiremill", tier: "MV", count: 1 }], [{ item: "wire_copper_single", qty: 2 }], S);
+near(r.total, 31 / 20, "ulv one oc time"); near(r.energy, 28 * 31, "ulv one oc energy");
 
 // 3. component assembler: aluminium frame caps at 8; 10 segments built counts 8
 let G = resolveGroup(data, { type: "component_assembler", frame: "aluminium", segments: 10, modules: [], count: 1 });
@@ -35,12 +38,13 @@ near(r.machineTime, 1.25, "locked CA");
 r = simulate(data, [{ type: "assembly_hall", frame: "steel", segments: 1, modules: [], count: 1 }], [{ item: "cable_tin_single", qty: 1 }, { item: "motor_lv", qty: 1 }], S);
 assert(r.errors.some(x => x.recipe === "motor_lv")); assert(!r.errors.some(x => x.recipe === "cable_tin_single"));
 
-// 6. efficiency coil: 0.75 energy, 1.25 duration; steel frame can't take it (MV module)
+// 6. efficiency coil: EU/t x0.6, duration x1.25 (0.75 energy per craft); steel frame can't take it (MV module)
 G = resolveGroup(data, { type: "turning_line", frame: "steel", segments: 2, modules: ["efficiency_coil"], count: 1 });
 assert(G.warnings.some(w => /needs at least a MV frame/.test(w)));
 r = simulate(data, [{ type: "turning_line", frame: "aluminium", segments: 1, modules: ["efficiency_coil"], count: 1 }], [{ item: "rod_steel", qty: 1 }], S);
-// lathe 16 EU/t is LV; MV machine -> 1 OC: duration 5.6*1.25/2, EU/t 16*0.75*4
-near(r.total, 5.6 * 1.25 / 2, "eff time"); near(r.energy, 16 * 0.75 * 4 * (5.6 * 1.25 / 2) * 20, "eff energy");
+// lathe 16 EU/t is LV; with the coil 9 EU/t (16 x 0.6 = 9.6, truncated as GTM does) and 140 ticks;
+// MV machine -> 1 OC: 70 ticks at 36 EU/t
+near(r.total, 70 / 20, "eff time"); near(r.energy, 36 * 70, "eff energy");
 
 // 7. batch bus doubles parallels with upkeep
 G = resolveGroup(data, { type: "component_assembler", frame: "stainless_steel", segments: 16, modules: ["batch_bus"], count: 1 });
@@ -52,11 +56,15 @@ assert.strictEqual(c.conflicts.length, 0, JSON.stringify(c.conflicts));
 const busIds = c.bus.map(b => b.recipe).sort();
 assert.deepStrictEqual(busIds, ["piston_hv", "piston_lv", "piston_mv", "robot_arm_hv", "robot_arm_lv", "robot_arm_mv"]);
 assert(c.bus.every(b => b.singleBusTier === "MV"));
-// a synthetic conflict is detected, and circuits resolve it
+// a synthetic conflict is detected (its inputs are a subset of copper wire's, circuit 1), and a different circuit resolves it
 const d2 = JSON.parse(JSON.stringify(data));
 d2.recipes.push({ id: "x1", machine: "wiremill", eut: 7, duration: 1, in: { ingot_copper: 1 }, out: { wire_copper_single: 1 } });
 let c2 = checks(d2); assert.strictEqual(c2.conflicts.length, 1); assert.strictEqual(c2.conflicts[0].resolved, false);
-d2.recipes[d2.recipes.length - 1].circuit = 2; c2 = checks(d2); assert.strictEqual(c2.conflicts[0].resolved, true);
+d2.recipes[d2.recipes.length - 1].circuit = 2; c2 = checks(d2); assert.strictEqual(c2.conflicts.length, 0);
+
+// one of each module per machine (decision one-module-per-type)
+G = resolveGroup(data, { type: "component_assembler", frame: "stainless_steel", segments: 4, modules: ["batch_bus", "batch_bus"], count: 1 });
+assert.strictEqual(G.parallels, 8); assert(G.warnings.some(w => /already installed/.test(w)));
 
 // 9. build cost: one 4-segment steel turning line
 const need = buildItems(data, [{ type: "turning_line", frame: "steel", segments: 4, modules: [], count: 1 }]);

@@ -587,6 +587,7 @@
    "component": true,
    "eut": 30,
    "duration": 5,
+   "circuit": 1,
    "in": {
     "cable_tin_single": 1,
     "motor_lv": 2
@@ -605,6 +606,7 @@
    "component": true,
    "eut": 30,
    "duration": 5,
+   "circuit": 1,
    "in": {
     "cable_copper_single": 1,
     "motor_mv": 2
@@ -623,6 +625,7 @@
    "component": true,
    "eut": 30,
    "duration": 5,
+   "circuit": 1,
    "in": {
     "cable_gold_single": 1,
     "motor_hv": 2
@@ -946,7 +949,8 @@
     "fluid_input_hatch": {
      "min": 0,
      "max": 2,
-     "only_if": "machine uses fluids"
+     "note": "every machine accepts them",
+     "so a batch bus can get lubricant": null
     },
     "fluid_output_hatch": {
      "min": 0,
@@ -989,7 +993,7 @@
    "Segment caps doubled from the slice's first draft (2/4/8 to 4/8/16) for more physical growth. The spike measured 37.5 \u00b5s per structure check at 8 segments; 16 must be measured before it ships."
   ],
   "segments": {
-   "parallels": "one per counted segment",
+   "parallels": "one per counted segment; parallels draw no extra power (decision free-parallels)",
    "counted": "min(segments built, frame segment_cap)",
    "over_cap": "A structure longer than its cap still forms, runs at the cap, and shows \"build a better frame to use all segments\". Players can build ahead.",
    "cost": "8 casings + 1 core block of the machine type."
@@ -997,6 +1001,7 @@
   "retrofit": {
    "action": "Right-click the controller with retrofit kits of the next frame. The machine converts all its casings and frame boxes in one action and gives the old ones back to the player. Controller, hatches, cores and modules stay.",
    "kits_needed": "one per 8 casings or frame boxes, rounded up",
+   "casings_per_kit": 8,
    "downgrade": "Allowed the same way, with kits of the lower frame."
   },
   "modules": {
@@ -1018,7 +1023,7 @@
    "efficiency_coil": {
     "unlocked_at": "MV",
     "effect": "25% less energy per craft; recipes take 25% longer.",
-    "energy": 0.75,
+    "energy": 0.6,
     "duration": 1.25
    },
    "batch_bus": {
@@ -1037,35 +1042,55 @@
   {
    "id": "casing_steel",
    "builds": "casing",
-   "status": "stock (check exact recipe against GTM 7.5.3)",
+   "status": "stock (GTM 7.5.3 MachineRecipeLoader; checked by a GameTest)",
    "frame": "steel",
    "in": {
     "plate_steel": 6,
     "frame_steel": 1
    },
+   "circuit": 6,
+   "eut": 16,
+   "duration": 2.5,
    "out": 2
   },
   {
    "id": "casing_aluminium",
    "builds": "casing",
-   "status": "stock (check exact recipe against GTM 7.5.3)",
+   "status": "stock (GTM 7.5.3 MachineRecipeLoader; checked by a GameTest)",
    "frame": "aluminium",
    "in": {
     "plate_aluminium": 6,
     "frame_aluminium": 1
    },
+   "circuit": 6,
+   "eut": 16,
+   "duration": 2.5,
    "out": 2
   },
   {
    "id": "casing_stainless_steel",
    "builds": "casing",
-   "status": "stock (check exact recipe against GTM 7.5.3)",
+   "status": "stock (GTM 7.5.3 MachineRecipeLoader; checked by a GameTest)",
    "frame": "stainless_steel",
    "in": {
     "plate_stainless_steel": 6,
     "frame_stainless_steel": 1
    },
+   "circuit": 6,
+   "eut": 16,
+   "duration": 2.5,
    "out": 2
+  },
+  {
+   "id": "retrofit_kit_steel",
+   "builds": "retrofit_kit",
+   "frame": "steel",
+   "note": "Converts 8 casings to steel (used to downgrade). Costs the same as 8 new casings.",
+   "in": {
+    "plate_steel": 24,
+    "frame_steel": 4
+   },
+   "circuit": 7
   },
   {
    "id": "retrofit_kit_aluminium",
@@ -1075,7 +1100,8 @@
    "in": {
     "plate_aluminium": 24,
     "frame_aluminium": 4
-   }
+   },
+   "circuit": 7
   },
   {
    "id": "retrofit_kit_stainless_steel",
@@ -1085,7 +1111,8 @@
    "in": {
     "plate_stainless_steel": 24,
     "frame_stainless_steel": 4
-   }
+   },
+   "circuit": 7
   },
   {
    "id": "module_specialization_lock",
@@ -1121,6 +1148,7 @@
  ],
  "multiblocks": {
   "component_assembler": {
+   "tier": "LV",
    "name": "Component Assembler",
    "runs": "assembler recipes marked component (motors, pistons, conveyors, robot arms)",
    "fluids": "in",
@@ -1144,6 +1172,7 @@
    }
   },
   "assembly_hall": {
+   "tier": "LV",
    "name": "Assembly Hall",
    "runs": "all other assembler recipes (cables, hulls, casings, machines)",
    "fluids": "in",
@@ -1166,6 +1195,7 @@
    }
   },
   "wire_drawing_line": {
+   "tier": "LV",
    "name": "Wire Drawing Line",
    "runs": "wiremill recipes",
    "fluids": "none",
@@ -1188,6 +1218,7 @@
    }
   },
   "turning_line": {
+   "tier": "LV",
    "name": "Turning Line",
    "runs": "lathe recipes",
    "fluids": "none",

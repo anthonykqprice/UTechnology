@@ -42,7 +42,7 @@ framework:
       energy_input: { min: 1, max: 2 }
       item_input_bus: { min: 1, max: 6 }
       item_output_bus: { min: 1, max: 2 }
-      fluid_input_hatch: { min: 0, max: 2, only_if: machine uses fluids }
+      fluid_input_hatch: { min: 0, max: 2, note: every machine accepts them, so a batch bus can get lubricant }
       fluid_output_hatch: { min: 0, max: 1, only_if: machine outputs fluids }
     voltage: >-
       The machine's max voltage is capped at its frame's max_voltage, whatever its
@@ -67,7 +67,7 @@ framework:
       16 must be measured before it ships.
 
   segments:
-    parallels: one per counted segment
+    parallels: one per counted segment; parallels draw no extra power (decision free-parallels)
     counted: min(segments built, frame segment_cap)
     over_cap: >-
       A structure longer than its cap still forms, runs at the cap, and shows "build
@@ -80,6 +80,7 @@ framework:
       converts all its casings and frame boxes in one action and gives the old ones
       back to the player. Controller, hatches, cores and modules stay.
     kits_needed: one per 8 casings or frame boxes, rounded up
+    casings_per_kit: 8
     downgrade: Allowed the same way, with kits of the lower frame.
 
   modules:
@@ -102,13 +103,14 @@ framework:
     efficiency_coil:
       unlocked_at: MV
       effect: 25% less energy per craft; recipes take 25% longer.
-      energy: 0.75
+      energy: 0.6        # EU/t multiplier; with duration 1.25 each craft uses 0.75 of the energy.
+                         # In game GTM rounds the EU/t (ModifierFunction); the simulator doesn't.
       duration: 1.25
     batch_bus:
       unlocked_at: HV
       effect: Doubles parallels. Each recipe run consumes lubricant.
       parallels: 2.0
-      upkeep: { lubricant: 10 }
+      upkeep: { lubricant: 10 }   # mB per parallel: every item crafted (decision batch-bus-upkeep)
       naming_note: GTM has an unrelated "batch mode"; rename before release to avoid confusion.
   modifier_order: segments (parallels), then modules, then overclocking
 
@@ -117,6 +119,7 @@ framework:
 # ---------------------------------------------------------------------------
 machines:
   component_assembler:
+    tier: LV               # build tier of its core and controller
     name: Component Assembler
     runs: assembler recipes marked component (motors, pistons, conveyors, robot arms)
     fluids: in             # conveyor recipes use liquid rubber
@@ -131,6 +134,7 @@ machines:
       in: { assembler_lv: 1, robot_arm_lv: 2, conveyor_lv: 2, circuit_lv: 3 }
 
   assembly_hall:
+    tier: LV               # build tier of its core and controller
     name: Assembly Hall
     runs: all other assembler recipes (cables, hulls, casings, machines)
     fluids: in             # cables use liquid rubber
@@ -142,9 +146,10 @@ machines:
       in: { assembler_lv: 1, robot_arm_lv: 2, piston_lv: 2, circuit_lv: 3 }
 
   wire_drawing_line:
+    tier: LV               # build tier of its core and controller
     name: Wire Drawing Line
     runs: wiremill recipes
-    fluids: none
+    fluids: none           # its recipes use no fluids; it still accepts fluid hatches (decision fluid-hatches-everywhere)
     core:
       id: drawing_die_unit
       name: Drawing Die Unit
@@ -153,9 +158,10 @@ machines:
       in: { wiremill_lv: 1, motor_lv: 2, conveyor_lv: 1, circuit_lv: 3 }
 
   turning_line:
+    tier: LV               # build tier of its core and controller
     name: Turning Line
     runs: lathe recipes
-    fluids: none
+    fluids: none           # its recipes use no fluids; it still accepts fluid hatches (decision fluid-hatches-everywhere)
     core:
       id: spindle_unit
       name: Spindle Unit
@@ -164,42 +170,70 @@ machines:
       in: { lathe_lv: 1, motor_lv: 2, piston_lv: 1, circuit_lv: 3 }
 
 # ---------------------------------------------------------------------------
+# How every build in the design is made (machines, cores, controllers, kits, modules;
+# here and in the slice files). Stock casings keep their GTM recipes.
+# ---------------------------------------------------------------------------
+build_rule:
+  machine: assembler
+  voltage: one tier below the build's tier (LV builds at ULV 7 EU/t, MV at LV 30, HV at MV 120)
+  eut: { LV: 7, MV: 30, HV: 120 }
+  duration: 10          # seconds, every build for now
+
+# ---------------------------------------------------------------------------
 # Build recipes for the framework (casings, retrofit kits, modules)
 # Controllers and cores are listed with each machine above.
 # ---------------------------------------------------------------------------
 builds:
   - id: casing_steel
     builds: casing
-    status: stock (check exact recipe against GTM 7.5.3)
+    status: stock (GTM 7.5.3 MachineRecipeLoader; checked by a GameTest)
     frame: steel
     in: { plate_steel: 6, frame_steel: 1 }
+    circuit: 6
+    eut: 16
+    duration: 2.5
     out: 2
 
   - id: casing_aluminium
     builds: casing
-    status: stock (check exact recipe against GTM 7.5.3)
+    status: stock (GTM 7.5.3 MachineRecipeLoader; checked by a GameTest)
     frame: aluminium
     in: { plate_aluminium: 6, frame_aluminium: 1 }
+    circuit: 6
+    eut: 16
+    duration: 2.5
     out: 2
 
   - id: casing_stainless_steel
     builds: casing
-    status: stock (check exact recipe against GTM 7.5.3)
+    status: stock (GTM 7.5.3 MachineRecipeLoader; checked by a GameTest)
     frame: stainless_steel
     in: { plate_stainless_steel: 6, frame_stainless_steel: 1 }
+    circuit: 6
+    eut: 16
+    duration: 2.5
     out: 2
+
+  - id: retrofit_kit_steel
+    builds: retrofit_kit
+    frame: steel
+    note: Converts 8 casings to steel (used to downgrade). Costs the same as 8 new casings.
+    in: { plate_steel: 24, frame_steel: 4 }
+    circuit: 7              # keeps it apart from the casing recipe (circuit 6), see decision kit-circuit
 
   - id: retrofit_kit_aluminium
     builds: retrofit_kit
     frame: aluminium
     note: Converts 8 casings to aluminium. Costs the same as 8 new casings.
     in: { plate_aluminium: 24, frame_aluminium: 4 }
+    circuit: 7              # keeps it apart from the casing recipe (circuit 6), see decision kit-circuit
 
   - id: retrofit_kit_stainless_steel
     builds: retrofit_kit
     frame: stainless_steel
     note: Converts 8 casings to stainless steel. Costs the same as 8 new casings.
     in: { plate_stainless_steel: 24, frame_stainless_steel: 4 }
+    circuit: 7              # keeps it apart from the casing recipe (circuit 6), see decision kit-circuit
 
   - id: module_specialization_lock
     builds: specialization_lock
@@ -230,6 +264,61 @@ stock_overlap:
     switches between two recipe types, which our rules don't allow; disable it too,
     or keep it cutter-only if that's possible without code. Decide the rest of the
     Large multiblocks when we design those machine types.
+
+decisions:
+  - id: efficiency-coil-energy
+    decided: 2026-10-13
+    decision: >-
+      The efficiency coil cuts energy per craft by 25%: EU/t x0.6 and duration x1.25.
+    why: >-
+      Matches the module's description. The simulator first applied x0.75 to EU/t,
+      which with the longer duration saved only about 6% per craft.
+  - id: fluid-hatches-everywhere
+    decided: 2026-10-13
+    decision: Every upgradeable multiblock accepts 0 to 2 fluid input hatches.
+    why: >-
+      The batch bus consumes lubricant, so machines whose recipes use no fluids
+      (Wire Drawing Line, Turning Line) still need a way to take it in.
+  - id: build-recipes
+    decided: 2026-10-13
+    decision: >-
+      Builds (machines, cores, controllers, retrofit kits, modules) are assembler
+      recipes one voltage tier below the build's tier, 10 s each (build_rule above).
+    why: >-
+      Follows the slice's bootstrap rule, so a tier-N upgrade can be made before the
+      player has tier-N power, and assembler recipes work with AE2 autocrafting.
+  - id: free-parallels
+    decided: 2026-10-13
+    decision: >-
+      Parallels don't consume additional power. A machine running N parallels draws the
+      EU/t of one recipe (after modules and overclocking), so each parallel costs no
+      extra energy. Overclocking is judged on one recipe's EU/t against the frame's
+      voltage, and power never limits parallels; only inputs and output space do.
+    why: >-
+      GTM's built-in rule caps parallels at voltage / recipe EU/t, which with frames
+      capping voltage would make segments almost useless for recipes at the frame's
+      tier (a steel frame running LV motors would get 1 parallel at any length). Free
+      parallels make segments the growth path, and power stays a per-machine cost.
+  - id: one-module-per-type
+    decided: 2026-10-13
+    decision: A machine holds at most one of each module type; extra copies are refused.
+    why: Keeps every module slot a real tradeoff instead of stacking one module's effect.
+  - id: batch-bus-upkeep
+    decided: 2026-10-13
+    decision: The batch bus consumes 10 mB lubricant per parallel, i.e. for every item crafted.
+    why: Upkeep scales with output, as the simulator already counted it.
+  - id: kit-circuit
+    decided: 2026-10-13
+    decision: Retrofit kit recipes use programmed circuit 7.
+    why: >-
+      A kit takes the same plates and frame box as the stock casing recipe (which uses
+      circuit 6), only more of them. Without a circuit, an input bus loaded for casings
+      could make kits instead. Different circuits keep the two recipes apart, as
+      CLAUDE.md's recipe-conflict rule requires.
+  - id: steel-retrofit-kit
+    decided: 2026-10-13
+    decision: Add a steel retrofit kit (24 steel plates, 4 steel frames) for downgrading to steel.
+    why: Downgrades use kits of the lower frame; without a steel kit nothing could go back to steel.
 
 open_questions:
   - Machine names are placeholders; rename freely before IDs are fixed.

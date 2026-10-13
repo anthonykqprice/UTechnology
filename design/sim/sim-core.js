@@ -41,6 +41,7 @@ function resolveGroup(data, g) {
     const mod = defs[k];
     if (!mod) continue;
     if (tierIndex(mod.unlocked_at) > frameTier) { warnings.push(`${title(k)} needs at least a ${mod.unlocked_at} frame`); continue; }
+    if (used.includes(k)) { warnings.push(`${title(k)} is already installed; one of each module per machine`); continue; }
     if (used.length >= f.module_slots) { warnings.push(`${title(frameKey)} frame has ${f.module_slots} module slot${f.module_slots > 1 ? "s" : ""}; ${title(k)} ignored`); continue; }
     used.push(k);
     if (k === "specialization_lock") { lockDuration = mod.duration || 0.5; continue; }
@@ -75,10 +76,18 @@ function capability(data, G, r, oc) {
   if (G.tier < rt) return null;
   let dmul = G.duration;
   if (G.locked) { if (G.lock !== r.id) return null; dmul *= G.lockDuration; }
-  const n = G.tier - rt;
-  const dur = r.duration * dmul / Math.pow(oc, n);     // seconds per run: modules, then overclocking
-  const eut = r.eut * G.energy * Math.pow(4, n);       // EU/t while running
-  const energyPerRun = eut * dur * 20;                 // EU per run
+  // As GTM 7.5.3 computes it: module multipliers first, each result truncated to whole ticks and EU/t
+  // (ContentModifier), then overclocking judged on the modified EU/t (OverclockingLogic): ULV recipes get one
+  // overclock fewer, and overclocking stops before a recipe would take under 1 tick.
+  const ticks0 = Math.round(r.duration * 20);
+  const ticksMod = dmul === 1 ? ticks0 : Math.max(1, Math.floor(ticks0 * dmul));   // GTM: at least 1 tick
+  const eutMod = G.energy === 1 ? r.eut : Math.floor(r.eut * G.energy);
+  const rtMod = recipeTier(eutMod);
+  let n = Math.max(0, G.tier - rtMod - (rtMod === 0 ? 1 : 0));
+  while (n > 0 && ticksMod / Math.pow(oc, n) < 1) n--;
+  const dur = Math.floor(ticksMod / Math.pow(oc, n)) / 20;   // seconds per run
+  const eut = eutMod * Math.pow(4, n);                        // EU/t while running (parallels add none)
+  const energyPerRun = eut * dur * 20 / G.parallels;  // EU per run: parallels share one recipe's power (decision free-parallels)
   const perRun = dur / G.parallels;                    // machine-seconds per run with parallels
   return { overclocks: n, dur, eut, energyPerRun, runTime: dur, perRun };
 }
@@ -186,14 +195,15 @@ function checks(data) {
   const conflicts = [], bus = [];
   const byMachine = {};
   for (const r of data.recipes) (byMachine[r.machine] = byMachine[r.machine] || []).push(r);
-  const key = r => Object.keys(r.in || {}).sort().join("+") + "|" + Object.keys(r.fluid_in || {}).sort().join("+");
+  // A conflict: every input of one recipe (items, fluids, programmed circuit) is also an input of another,
+  // so an input bus loaded for the larger recipe can run the smaller one. Only a different circuit fixes it.
+  // Same rule as tools/validate.py.
+  const keys = r => new Set(Object.keys(r.in || {}).concat(Object.keys(r.fluid_in || {}).map(k => "fluid:" + k), r.circuit != null ? ["circuit:" + r.circuit] : []));
+  const subset = (a, b) => [...a].every(k => b.has(k));
   for (const [mach, list] of Object.entries(byMachine)) {
-    const groups = {};
-    for (const r of list) (groups[key(r)] = groups[key(r)] || []).push(r);
-    for (const g of Object.values(groups)) if (g.length > 1) {
-      const circuits = g.map(r => r.circuit);
-      const resolved = new Set(circuits).size === g.length && circuits.every(c => c != null);
-      conflicts.push({ machine: mach, recipes: g.map(r => r.id), resolved, how: resolved ? "programmed circuits" : "unresolved" });
+    for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+      const a = keys(list[i]), b = keys(list[j]);
+      if (subset(a, b) || subset(b, a)) conflicts.push({ machine: mach, recipes: [list[i].id, list[j].id], resolved: false, how: "give them different programmed circuits" });
     }
   }
   // lowest tier at which some machine type can run the recipe (no machine exists at ULV)
@@ -265,7 +275,7 @@ function simulate(data, factory, goals, settings) {
     energy += n * cap.energyPerRun;
     groupStats[gi].energy += n * cap.energyPerRun;
     groupStats[gi].runs[id] = n;
-    groupStats[gi].peakEut = Math.max(groupStats[gi].peakEut, cap.eut * G.parallels * G.count);
+    groupStats[gi].peakEut = Math.max(groupStats[gi].peakEut, cap.eut * G.count); // parallels draw no extra power
     for (const u in G.upkeep) upkeep[u] = (upkeep[u] || 0) + G.upkeep[u] * n;
   }
 

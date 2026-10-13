@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "utechnology:block/spindle_unit"
+    }
+  }
+}

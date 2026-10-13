@@ -1,0 +1,13 @@
+name = "UTechnology"
+author = "anthonykqprice"
+version = "0.1.0-prototype"
+pack-format = "packwiz:1.1.0"
+
+[index]
+file = "index.toml"
+hash-format = "sha256"
+hash = "fcafd1955045f9726ec86ee4215c17d09aa67a7a0530ae0adee9884536edd4e4"
+
+[versions]
+forge = "47.4.27"
+minecraft = "1.20.1"
