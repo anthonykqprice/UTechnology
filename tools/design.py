@@ -8,7 +8,8 @@ TIERS = ["ULV", "LV", "MV", "HV", "EV", "IV", "LuV", "ZPM", "UV", "UHV"]
 
 
 class Design:
-    def __init__(self, slice_, mb, ids):
+    def __init__(self, slice_, mb, ids, proto=None):
+        self.proto = proto or {}
         self.slice = slice_
         self.mb = mb
         self.ids = ids
@@ -134,4 +135,4 @@ def load():
     def read(name):
         with open(d / name) as f:
             return yaml.safe_load(f)
-    return Design(read("slice1-mechanical.yaml"), read("multiblocks.yaml"), read("ids.yaml"))
+    return Design(read("slice1-mechanical.yaml"), read("multiblocks.yaml"), read("ids.yaml"), read("prototype.yaml"))

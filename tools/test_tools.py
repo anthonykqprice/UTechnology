@@ -49,18 +49,16 @@ class ValidatorTests(unittest.TestCase):
         self.assertTrue(any("unobtainium" in e and "neither defined" in e for e in errs))
         self.assertTrue(any("unobtainium" in e and "no game ID" in e for e in errs))
 
-    def test_too_many_fluid_groups_is_an_error(self):
+    def test_too_many_fluids_is_an_error(self):
         d = copy.deepcopy(self.d)
-        # three fluid recipes in the Assembly Hall that each consist only of inputs the others also use
-        for i, extra in enumerate(["wire_tin_single", "wire_copper_single", "wire_gold_single"]):
-            d.slice["recipes"].append({"id": f"y{i}", "status": "new", "machine": "assembler", "eut": 7, "duration": 1,
-                                       "circuit": 20 + i, "in": {extra: 1, "plate_steel": 1}, "fluid_in": {"rubber_fluid": 1},
-                                       "out": {"cable_tin_single": 1}})
-            d.slice["recipes"].append({"id": f"z{i}", "status": "new", "machine": "assembler", "eut": 7, "duration": 1,
-                                       "circuit": 20 + i, "in": {extra: 1}, "fluid_in": {"rubber_fluid": 1, "lubricant": 1},
-                                       "out": {"cable_tin_single": 1}})
+        # a third fluid in the Assembly Hall's recipes: more fluids than fluid hatches
+        d.slice["items"]["water"] = {"kind": "supplied", "fluid": True}
+        d.ids["items"]["water"] = "fluid:minecraft:water"
+        d.slice["recipes"].append({"id": "y", "status": "new", "machine": "assembler", "eut": 7, "duration": 1,
+                                   "circuit": 21, "in": {"plate_steel": 1}, "fluid_in": {"water": 1, "lubricant": 1},
+                                   "out": {"cable_tin_single": 1}})
         rep = self.run_checks(d)
-        self.assertTrue(any("colour groups" in e for e in rep.errors), rep.errors)
+        self.assertTrue(any("fluid input hatches" in e for e in rep.errors), rep.errors)
 
     def test_changed_recipe_needs_replaces(self):
         d = copy.deepcopy(self.d)

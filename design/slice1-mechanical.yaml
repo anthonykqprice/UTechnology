@@ -436,10 +436,11 @@ decisions:
     revised: 2026-10-13 (first version banned conflicts)
     gtm_note: >-
       In GTM 7.5.3 a distinct input bus sees only its own slots, never a fluid hatch.
-      Recipes with fluids are kept apart with GTM's colour groups instead: dye an input
-      bus and a fluid hatch the same colour and they form their own group. A machine's
-      two fluid hatches allow two such groups. tools/validate.py checks every multiblock
-      against this (docs/validation-report.md lists the groups).
+      Recipes with fluids are kept apart with GTM's colour groups instead: a dyed input
+      bus (spray can) forms its colour's group, and every undyed hatch joins every colour
+      group. So fluid recipes go on dyed buses and share the machine's undyed fluid
+      hatches. tools/validate.py checks every multiblock against this
+      (docs/validation-report.md lists the groups).
   - id: per-machine-upgrades
     decided: 2026-10-13
     decision: >-

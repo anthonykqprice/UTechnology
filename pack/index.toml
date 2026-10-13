@@ -22,15 +22,15 @@ hash = "946456ede664049cc0844bce8c1eb6a088d3b4c43f38d7d662e5d29552dfa94c"
 
 [[files]]
 file = "kubejs/data/utechnology/upgrade_modules/batch_bus.json"
-hash = "1ac1bfa60e554783a89f4aabd9e1209c44038ce95b45a7f19f7f0c9e0802bf8e"
+hash = "f29f54a21205e5f37806cf1d30b9679a9c940a2685c6041fa629b852e4dd37ec"
 
 [[files]]
 file = "kubejs/data/utechnology/upgrade_modules/efficiency_coil.json"
-hash = "4cd591b251be3fe30a8d77a25c5a2084a9b53aeee8fc1fb7163e75acfdfe55b4"
+hash = "8fb6eebd285bbaeae4262fc2046fc2d5b1599c8a0025a01290d35c0fa243a8b2"
 
 [[files]]
 file = "kubejs/data/utechnology/upgrade_modules/specialization_lock.json"
-hash = "9c912b260547d28d9aa99cedf6bb4fe8375c97a2f47d834cc4f47fab921a15cd"
+hash = "35e5399e7f8b7db033c12c5ab6a7d65139f2af1227042ac0a4fdda8ff7473d2e"
 
 [[files]]
 file = "kubejs/data/utechnology/upgrade_multiblocks/assembly_hall.json"
@@ -51,6 +51,10 @@ hash = "21608afb83fbdacfcc44db5db394b4a39a250891d99e6b579eccec743b02a9cc"
 [[files]]
 file = "kubejs/server_scripts/generated/recipes.js"
 hash = "a3808a2e3aa0c3cf0db470df764238415aabc325c46f3d430a0c464163459e75"
+
+[[files]]
+file = "kubejs/server_scripts/generated/starter.js"
+hash = "38f44eb6ca6d0893fe678004fc26f89c71abcf0d9137afab2c2739a87ac0c148"
 
 [[files]]
 file = "kubejs/startup_scripts/.gitkeep"

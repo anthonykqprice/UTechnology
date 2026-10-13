@@ -149,6 +149,15 @@ def machine_recipes(d, key, recipes):
     return out
 
 
+def group_keys(r):
+    """Inputs that decide whether recipes in one input group can run from each other's items: items and the
+    programmed circuit. Fluids are left out: a machine's undyed fluid hatches are shared by every colour group."""
+    keys = set(r.get("in", {}))
+    if r.get("circuit") is not None:
+        keys.add(f"circuit:{r['circuit']}")
+    return frozenset(keys)
+
+
 def covered(keys, others):
     """True if every input of a recipe is also an input of some recipe in others."""
     union = set().union(*others) if others else set()
@@ -156,15 +165,15 @@ def covered(keys, others):
 
 
 def group_ok(group):
-    keys = [input_keys(r) for r in group]
+    keys = [group_keys(r) for r in group]
     return not any(covered(k, keys[:i] + keys[i + 1:]) for i, k in enumerate(keys))
 
 
 def isolation_groups(recipes, tier_of=lambda r: 1):
     """
     Split a machine's recipes into input groups that AE2 can feed without wrong crafts: within a group, no
-    recipe's inputs are all also inputs of the group's other recipes (or a pattern provider pushing those
-    recipes could make it). Recipes with fluids need groups that hold a fluid hatch. Greedy, largest first.
+    recipe's items are all also items of the group's other recipes (or a pattern provider pushing those recipes
+    could make it). Greedy, largest first. A group is one input bus (its items must fit).
     """
     def fits(group):
         # one bus holds the group's distinct items: the bus of the group's highest tier, or the smallest bus
@@ -174,11 +183,12 @@ def isolation_groups(recipes, tier_of=lambda r: 1):
         return len(items) <= cap
 
     groups = []
-    for r in sorted(recipes, key=lambda r: (-len(input_keys(r)), r["id"])):
+    for r in sorted(recipes, key=lambda r: (-len(group_keys(r)), r["id"])):
         for g in groups:
             cand = g["recipes"] + [r]
-            if bool(g["fluids"]) == bool(r.get("fluid_in")) and group_ok(cand) and fits(cand):
+            if group_ok(cand) and fits(cand):
                 g["recipes"].append(r)
+                g["fluids"] = g["fluids"] or bool(r.get("fluid_in"))
                 break
         else:
             groups.append({"fluids": bool(r.get("fluid_in")), "recipes": [r]})
@@ -187,40 +197,36 @@ def isolation_groups(recipes, tier_of=lambda r: 1):
 
 def check_isolation(d, rep, recipes):
     """
-    AE2 feeding per multiblock. GTM 7.5.3: a distinct bus sees only its own slots (plus energy), never a fluid
-    hatch; recipes with fluids are kept apart by dyeing a bus and a fluid hatch the same colour (a colour group).
-    Error if a machine can't separate its recipes even with the largest bus the design reaches (HV, 16 slots).
-    The report also lists the grouping with each recipe's own-tier bus, which is what a player starts with.
+    AE2 feeding per multiblock, as GTM 7.5.3 groups input handlers (RecipeHelper.addToRecipeHandlerMap): a
+    distinct bus is its own group and sees no hatch; a dyed bus or hatch belongs to its colour's group; undyed
+    hatches and buses join every colour group. So each input group is one bus; recipes with fluids need a dyed
+    (colour group) bus, which also sees the machine's undyed fluid hatches. Limits: one bus per group (6 buses),
+    and the machine's different fluids must fit its fluid hatches (2; LV-HV hatches hold one fluid each).
+    Errors only if even HV buses can't separate the recipes.
     """
     lim = d.framework["hatches"]["limits"]
     max_buses, max_fluid = lim["item_input_bus"]["max"], lim["fluid_input_hatch"]["max"]
     top = max(TIERS.index(f["max_voltage"]) for f in d.framework["frames"].values())
+    upkeep = sorted({f for m in d.framework["module_definitions"].values() for f in (m.get("upkeep") or {})})
     rows = []
     for key, m in d.slice["machines"].items():
         if m["kind"] != "multiblock":
             continue
         rs = machine_recipes(d, key, recipes)
         best = isolation_groups(rs, lambda r: top)
-        nfluid = sum(1 for g in best if g["fluids"])
         if len(best) > max_buses:
             rep.error(f"{key}: even with {TIERS[top]} buses its recipes need {len(best)} separate input groups for AE2; "
                       f"a machine has at most {max_buses} input buses")
-        if nfluid > max_fluid:
-            rep.error(f"{key}: its fluid recipes need {nfluid} colour groups, each with its own fluid hatch; a machine "
-                      f"has at most {max_fluid} fluid input hatches")
-        # with an upkeep module (batch bus), every recipe also takes that fluid, so every group needs a fluid hatch
-        upkeep = [k for k, m in d.framework["module_definitions"].items() if m.get("upkeep")]
-        if upkeep and rs:
-            with_upkeep = [dict(r, fluid_in=dict(r.get("fluid_in", {}), **{f: 1 for k in upkeep
-                                                   for f in d.framework["module_definitions"][k]["upkeep"]})) for r in rs]
-            ug = isolation_groups(with_upkeep, lambda r: top)
-            two_fluid = any(len(r.get("fluid_in", {})) >= 1 for r in rs)
-            rep.warn(f"{key}: with a batch bus every recipe also needs lubricant, and a distinct bus can't see fluid "
-                     f"hatches, so all of its recipes must be fed through colour groups: {len(ug)} groups needed, at most "
-                     f"{max_fluid} fluid hatches" + (" (and its recipes that already use a fluid need both hatches in one "
-                     "group)" if two_fluid else ""))
+        fluids = sorted({f for r in rs for f in r.get("fluid_in", {})})
+        if len(fluids) > max_fluid:
+            rep.error(f"{key}: its recipes use {len(fluids)} fluids ({', '.join(fluids)}) but a machine has at most "
+                      f"{max_fluid} fluid input hatches")
+        with_upkeep = sorted(set(fluids) | set(upkeep))
+        if len(with_upkeep) > max_fluid:
+            rep.error(f"{key}: with a batch bus it needs {len(with_upkeep)} fluids ({', '.join(with_upkeep)}) but has at "
+                      f"most {max_fluid} fluid input hatches")
         start = isolation_groups(rs, lambda r: lowest_machine_tier(d, r))
-        rows.append({"machine": key, "best": best, "start": start, "top": TIERS[top]})
+        rows.append({"machine": key, "best": best, "start": start, "top": TIERS[top], "fluids": fluids})
         if len(start) > max_buses:
             rep.warn(f"{key}: with each recipe's own-tier buses, running all {len(rs)} of its recipes from one machine "
                      f"needs {len(start)} input groups (it has {max_buses} buses); split them over several machines or "
@@ -299,18 +305,22 @@ def write_report(rep, subset, shared, buses, isolation):
               "also an input of the other: an input bus loaded for the larger recipe can run the smaller one, and only a",
               "different programmed circuit fixes that. These are errors; this design has " + (f"{len(subset)}." if subset else "none."), "",
               "## Feeding the multiblocks with AE2", "",
-              "A pattern provider in non-blocking mode pushes each recipe's inputs into the machine. If one recipe's inputs",
-              "are all also inputs of other recipes fed into the same bus, AE2's pushes for those recipes can make it",
-              "instead. So recipes are split into input groups that can't do that. Item-only recipes go in a **distinct**",
-              "input bus. In GTM 7.5.3 a distinct bus never sees a fluid hatch, so recipes with fluids use a **colour",
-              "group**: an input bus and a fluid hatch dyed the same colour. A machine has at most 6 input buses and 2",
-              "fluid hatches. Groups below are found greedily; any grouping that respects the rule works.", ""]
+              "A pattern provider in non-blocking mode pushes each recipe's inputs into the machine. If one recipe's items",
+              "are all also items of other recipes fed into the same bus, AE2's pushes for those recipes can make it",
+              "instead. So recipes are split into input groups, one input bus each. How GTM 7.5.3 groups a machine's",
+              "inputs: a **distinct** bus is a group of its own and sees no fluid hatch; a **dyed** bus (spray can) forms",
+              "its colour's group, and every **undyed** hatch joins every colour group. So: recipes with fluids, and every",
+              "recipe while a batch bus is installed (lubricant), go on dyed buses, one colour per group, with the",
+              "machine's fluids in undyed hatches (one fluid per LV-HV hatch); item-only recipes can use distinct",
+              "buses. A machine has at most 6 input buses and 2 fluid hatches. Groups below are found greedily; any",
+              "grouping that respects the rule works.", ""]
     for row in isolation:
         for label, groups, note in (("with each recipe's own-tier bus", row["start"], ""),
                                     (f"with {row['top']} buses", row["best"], "")):
-            lines += [f"**{row['machine']}**, {label}: {len(groups)} groups", ""]
+            lines += [f"**{row['machine']}**, {label}: {len(groups)} groups"
+                      + (f"; fluids in undyed hatches: {', '.join(row['fluids'])}" if row["fluids"] else ""), ""]
             for i, g in enumerate(groups, 1):
-                kind = "colour group" if g["fluids"] else "distinct bus"
+                kind = "dyed bus (uses fluids)" if g["fluids"] else "distinct or dyed bus"
                 lines.append(f"{i}. {kind}: {', '.join(r['id'] for r in g['recipes'])}")
             lines.append("")
     lines += ["## Bus sizes", "",

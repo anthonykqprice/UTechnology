@@ -93,14 +93,15 @@ Recorded in `design/multiblocks.yaml` → `decisions`:
 ### Phase 2 review (independent agent) and what changed
 - **Fluids and distinct buses (the review's blocker).** In GTM 7.5.3 a distinct input bus never sees a
   fluid hatch, so recipes with fluids (conveyors, cables, the bearing) can't be fed through distinct buses.
-  GTM's tool for them is the **colour group**: dye an input bus and a fluid hatch the same colour. The
-  validator now works out, for each multiblock, how its recipes split into input groups that AE2 can feed
-  without wrong crafts (no recipe's inputs all also belong to other recipes in its group), and checks
-  that against the hatch limits (6 input buses, 2 fluid hatches). Every machine fits with HV buses. With
-  the small buses a player starts with, one Component Assembler or Assembly Hall can't hold every recipe
-  at once (10 and 13 groups); that's a warning, and the answer in play is several machines or bigger
-  buses. The grouping is listed in `docs/validation-report.md`, and the AE2 decision in the slice file
-  has a note about colour groups.
+  GTM's tool for them is the **colour group**: a dyed input bus (spray can) forms its colour's group, and
+  every *undyed* hatch joins every colour group (corrected in phase 4 after reading GTM's
+  `RecipeHelper.addToRecipeHandlerMap`). So fluid recipes go on dyed buses and share the machine's undyed
+  fluid hatches. The validator works out, for each multiblock, how its recipes split into input groups that
+  AE2 can feed without wrong crafts (no recipe's items all also belong to other recipes in its group) and
+  checks that against the limits (one bus per group, 6 buses; the machine's fluids must fit its 2 fluid
+  hatches). Every machine fits with HV buses. With the small buses a player starts with, one Component
+  Assembler or Assembly Hall can't hold every recipe at once; that's a warning, and the answer in play is
+  several machines or bigger buses. The grouping is in `docs/validation-report.md`.
 - **Answers from Anthony**: a machine holds at most **one of each module** (the simulator now refuses
   duplicates); the batch bus's lubricant is charged **per parallel**; hard mode stays as configured (wood,
   dye and vanilla-block nerfs off; decision `hard-mode-scope`).
@@ -193,9 +194,9 @@ frame voltage; only inputs and output space limit parallels. Recorded as decisio
   LV machines are now slower in the estimate, as they are in game).
 - **Batch bus and AE2** (a gameplay consequence worth knowing): with a batch bus, every recipe also takes
   lubricant from a fluid hatch, and in GTM a distinct bus never sees fluid hatches. So a batch-bus machine
-  must be fed through colour groups (bus and hatch dyed alike), and a machine has at most 2 fluid hatches:
-  at most 2 input groups, or 1 for recipes that already use a fluid (conveyors need rubber and lubricant).
-  The validator reports this per machine. It may be worth revisiting the batch bus's upkeep in the design.
+  must be fed through dyed (colour group) buses, which all see an undyed lubricant hatch; distinct buses
+  stop working while the batch bus is installed. A machine with rubber recipes then uses both fluid
+  hatches (rubber and lubricant). The validator checks that the fluids fit.
 
 ### Phase 4: numbers
 - Structure check time (one full check, the work GTM does on every block change in a formed structure),

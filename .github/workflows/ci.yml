@@ -58,8 +58,27 @@ jobs:
       - name: Build, unit tests and GameTests
         working-directory: addon
         run: ./gradlew --no-daemon build runGameTestServer
+      - name: No KubeJS errors while the GameTests ran
+        run: |
+          if grep -E "\[KubeJS (Startup|Server)/\]" addon/run-gametest/logs/latest.log | grep -E "ERROR|Error"; then exit 1; fi
       - uses: actions/upload-artifact@v7
         with: { name: addon, path: addon/build/libs/*.jar }
       - uses: actions/upload-artifact@v7
         if: always()
         with: { name: gametest-log, path: addon/run-gametest/logs/latest.log }
+
+  pack-server:
+    name: Full pack boots on a dedicated server
+    needs: pack
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with: { distribution: temurin, java-version: '17' }
+      - uses: actions/download-artifact@v8
+        with: { name: modpack, path: modpack }
+      - name: Boot, check kits, stop
+        run: tools/pack-server-smoke.sh "$(find modpack -name '*.mrpack' | head -1)" "$RUNNER_TEMP/server"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with: { name: pack-server-log, path: "${{ runner.temp }}/server/logs/latest.log" }

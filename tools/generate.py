@@ -204,13 +204,155 @@ def expectations(d, recipe_cases):
     }
 
 
+# ---------------------------------------------------------------- prototype test world (design/prototype.yaml)
+
+def prototype_numbers(d):
+    proto = d.proto
+    out = subprocess.run(["node", str(ROOT / "tools/prototype.js"), json.dumps(proto), json.dumps(d.slice.get("builds", []))],
+                         check=True, capture_output=True, text=True).stdout
+    return json.loads(out)
+
+
+def starter_kits(d, nums):
+    """Kits as [name, [[id, count], ...]]: materials sized by the simulator, then the fixed kits."""
+    import math
+    proto = d.proto
+    margin = proto["margin"]
+    concrete = proto.get("concrete", {})
+    creative = set(proto.get("creative_supplied", []))
+    materials = []
+    fluids_extra = []
+    for key, qty in sorted(nums["supplied"].items()):
+        if key in creative:
+            continue
+        amount = math.ceil(qty * margin)
+        if key in concrete and concrete[key].endswith("_bucket"):
+            fluids_extra.append([concrete[key], math.ceil(amount / 1000)])
+            continue
+        gid = concrete.get(key) or d.item_id(key)
+        if gid.startswith("#"):
+            raise ValueError(f"supplied item '{key}' maps to a tag ({gid}); add a concrete item in prototype.yaml")
+        materials.append([gid, amount])
+    kits = [["Materials", materials]]
+    for key, kit in proto["kits"].items():
+        items = [[i, n] for i, n in kit["items"].items()]
+        if key == "fluids":
+            items += fluids_extra
+        if key == "power_real":
+            energy = nums["estimate"]["with_multiblocks"]["energy_eu"]
+            items.append([kit["fuel"], math.ceil(energy * margin / kit["eu_per_bucket"])])
+        kits.append([kit["name"], items])
+    return kits
+
+
+def starter_js(d, nums):
+    kits = starter_kits(d, nums)
+    kits_js = ",\n".join("  [" + json.dumps(name) + ", [\n" + ",\n".join(f"    [{json.dumps(i)}, {n}]" for i, n in items) + "]]"
+                         for name, items in kits)
+    est = nums["estimate"]
+    return f"""// {HEADER}
+// Prototype test world (design/prototype.yaml): kits as labelled shulker boxes. Every player gets them once,
+// on first join; /utechkit gives them again; /utechkit check lists kit items missing from the game.
+// Material amounts come from the simulator: the goal ({', '.join(f'{v} {k}' for k, v in d.proto['goal'].items())})
+// plus the starter factory, times {d.proto['margin']}.
+
+const UTECH_KITS = [
+{kits_js}
+]
+
+// Splits each kit into shulker boxes of 27 stacks.
+function utechBoxes(kit) {{
+  const [name, items] = kit
+  const stacks = []
+  items.forEach(([id, count]) => {{
+    const item = Item.of(id)
+    if (item.isEmpty()) {{ console.error(`utechnology: kit item ${{id}} does not exist`); return }}
+    const max = item.maxStackSize
+    for (let left = count; left > 0; left -= max) stacks.push([id, Math.min(max, left)])
+  }})
+  const boxes = []
+  for (let i = 0; i < stacks.length; i += 27) {{
+    const part = stacks.slice(i, i + 27)
+    const label = stacks.length > 27 ? `${{name}} (${{i / 27 + 1}}/${{Math.ceil(stacks.length / 27)}})` : name
+    const entries = part.map(([id, n], slot) => `{{Slot:${{slot}}b,id:"${{id}}",Count:${{n}}b}}`).join(',')
+    boxes.push(Item.of('minecraft:white_shulker_box', `{{BlockEntityTag:{{Items:[${{entries}}]}},display:{{Name:'{{"text":"Kit: ${{label}}","italic":false}}'}}}}`))
+  }}
+  return boxes
+}}
+
+function utechGiveKits(player) {{
+  UTECH_KITS.forEach(kit => utechBoxes(kit).forEach(box => player.give(box)))
+}}
+
+PlayerEvents.loggedIn(event => {{
+  const player = event.player
+  if (player.persistentData.getBoolean('utechnology_kits')) return
+  player.persistentData.putBoolean('utechnology_kits', true)
+  utechGiveKits(player)
+  player.tell('UTechnology prototype: your kits are in your inventory. See docs/prototype-test.md.')
+}})
+
+ServerEvents.commandRegistry(event => {{
+  const {{ commands: Commands }} = event
+  event.register(Commands.literal('utechkit')
+    .requires(src => src.hasPermission(2))
+    .executes(ctx => {{ utechGiveKits(ctx.source.playerOrException); return 1 }})
+    .then(Commands.literal('check').executes(ctx => {{
+      const missing = []
+      UTECH_KITS.forEach(([name, items]) => items.forEach(([id]) => {{ if (Item.of(id).isEmpty()) missing.push(id) }}))
+      console.info(`utechkit check: ${{missing.length}} missing${{missing.length ? ': ' + missing.join(', ') : ''}}`)
+      ctx.source.sendSystemMessage(Text.of(`utechkit check: ${{missing.length}} missing${{missing.length ? ': ' + missing.join(', ') : ''}}`))
+      return missing.length ? 0 : 1
+    }})))
+}})
+"""
+
+
+def estimate_md(d, nums):
+    lines = [f"<!-- {HEADER} -->", "# Prototype estimate (from the simulator)", "",
+             "What the simulator expects for the prototype's goal, to compare with the time it takes in game",
+             "(docs/prototype-test.md, last section). Recompute with `python3 tools/generate.py` after design changes.", "",
+             "Goal: " + ", ".join(f"{v} x {k}" for k, v in d.proto["goal"].items()) + ".",
+             f"Power: the real-power kit's generators, {nums['power_eut']} EU/t in total.", ""]
+    for key, label in (("single_blocks", "Single-block machines only"), ("with_multiblocks", "With the multiblocks")):
+        e = nums["estimate"][key]
+        lines += [f"## {label}", "",
+                  "| | |", "|---|---|",
+                  f"| Time | **{e['total_s'] / 60:.1f} min** ({e['total_s']:.0f} s), limited by {e['limit']} |",
+                  f"| Machine time (busiest machine) | {e['machine_s']:.0f} s |",
+                  f"| Longest chain (one item through every step) | {e['chain_s']:.0f} s |",
+                  f"| Energy | {e['energy_eu'] / 1e6:.2f} M EU |", ""]
+        lines += ["Machines:", ""] + [f"- {g['count']} x {g['type']}" + (f" {g['tier']}" if 'tier' in g else
+                  f", {g['frame']} frame, {g['segments']} segments") for g in nums["factories"][key]] + [""]
+        if e["errors"]:
+            lines += ["Problems: " + "; ".join(e["errors"]), ""]
+    lines += ["The simulator assumes inputs are always there (AE2 keeps machines fed) and no time is lost moving",
+              "items by hand, so expect the in-game time to be longer by however long you spend setting up."]
+    return "\n".join(lines) + "\n"
+
+
+def refresh_pack_index():
+    """packwiz's index stores a hash of every file in pack/ (the generated scripts and data too); refresh it."""
+    import os
+    import shutil
+    packwiz = shutil.which("packwiz") or os.path.expanduser("~/go/bin/packwiz")
+    if not os.path.exists(packwiz):
+        print("note: packwiz not found; run `packwiz refresh` in pack/ before committing")
+        return
+    index = ROOT / "pack/index.toml"
+    before = index.read_text()
+    subprocess.run([packwiz, "refresh"], cwd=ROOT / "pack", check=True, capture_output=True)
+    if index.read_text() != before:
+        STALE.append("pack/index.toml")
+        print("refreshed pack/index.toml")
+
+
 # ---------------------------------------------------------------- main
 
 def main():
     d = design.load()
     write("pack/kubejs/server_scripts/generated/recipes.js", recipes_js(d))
     write("pack/kubejs/client_scripts/generated/hide.js", hide_js(d))
-    clean_dir("pack/kubejs/server_scripts/generated", {"recipes.js"})
     clean_dir("pack/kubejs/client_scripts/generated", {"hide.js"})
     for sub, objs in (("upgrade_frames", frames_json(d)), ("upgrade_modules", modules_json(d)),
                       ("upgrade_multiblocks", multiblocks_json(d))):
@@ -223,6 +365,11 @@ def main():
     write("addon/src/test/resources/bonus_cases.json", cases + "\n")
     write_json("addon/src/main/resources/data/utechnology/gametest/expectations.json",
                expectations(d, json.loads(cases)["recipe_cases"]))
+    nums = prototype_numbers(d)
+    write("pack/kubejs/server_scripts/generated/starter.js", starter_js(d, nums))
+    clean_dir("pack/kubejs/server_scripts/generated", {"recipes.js", "starter.js"})
+    write("docs/prototype-estimate.md", estimate_md(d, nums))
+    refresh_pack_index()
     if CHECK and STALE:
         print("stale generated files (now regenerated; commit them):", ", ".join(STALE))
         sys.exit(1)
