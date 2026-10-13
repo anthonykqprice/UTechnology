@@ -80,6 +80,7 @@ framework:
       converts all its casings and frame boxes in one action and gives the old ones
       back to the player. Controller, hatches, cores and modules stay.
     kits_needed: one per 8 casings or frame boxes, rounded up
+    casings_per_kit: 8
     downgrade: Allowed the same way, with kits of the lower frame.
 
   modules:
@@ -109,7 +110,7 @@ framework:
       unlocked_at: HV
       effect: Doubles parallels. Each recipe run consumes lubricant.
       parallels: 2.0
-      upkeep: { lubricant: 10 }
+      upkeep: { lubricant: 10 }   # mB per parallel: every item crafted (decision batch-bus-upkeep)
       naming_note: GTM has an unrelated "batch mode"; rename before release to avoid confusion.
   modifier_order: segments (parallels), then modules, then overclocking
 
@@ -286,6 +287,14 @@ decisions:
     why: >-
       Follows the slice's bootstrap rule, so a tier-N upgrade can be made before the
       player has tier-N power, and assembler recipes work with AE2 autocrafting.
+  - id: one-module-per-type
+    decided: 2026-10-13
+    decision: A machine holds at most one of each module type; extra copies are refused.
+    why: Keeps every module slot a real tradeoff instead of stacking one module's effect.
+  - id: batch-bus-upkeep
+    decided: 2026-10-13
+    decision: The batch bus consumes 10 mB lubricant per parallel, i.e. for every item crafted.
+    why: Upkeep scales with output, as the simulator already counted it.
   - id: kit-circuit
     decided: 2026-10-13
     decision: Retrofit kit recipes use programmed circuit 7.

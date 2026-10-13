@@ -1001,6 +1001,7 @@
   "retrofit": {
    "action": "Right-click the controller with retrofit kits of the next frame. The machine converts all its casings and frame boxes in one action and gives the old ones back to the player. Controller, hatches, cores and modules stay.",
    "kits_needed": "one per 8 casings or frame boxes, rounded up",
+   "casings_per_kit": 8,
    "downgrade": "Allowed the same way, with kits of the lower frame."
   },
   "modules": {

@@ -6,7 +6,9 @@ language. If a session restarts, resume from "Current state".
 ## Current state
 - Phase 1 (repository and pack skeleton): done. Reviewed; fixes applied (JEI pinned to its newest
   release, CI actions updated and the runner pinned, sturdier scripts, changelog). CI green.
-- Phase 2 (data pipeline and validator): built, GameTests green locally; under review.
+- Phase 2 (data pipeline and validator): done. Reviewed; the review's findings are fixed (see "Phase 2
+  review" below). Committed on its own so CI checks it.
+- Phase 3 (items and single-block machines): in progress.
 - Branch: `claude/gifted-hawking-pmc94i` (one branch for all five phases, one PR at the end).
 
 ## How to run things (from the repository root)
@@ -70,9 +72,9 @@ Recorded in `design/multiblocks.yaml` → `decisions`:
   answered by the running game, so GameTests (`DesignTests`) check that: every ID exists, stock recipes
   match, replaced recipes are gone, our recipes loaded as designed, and none of ours conflicts with any
   other recipe of the same machine type in the whole game (not just the design).
-- **Conflict rule.** A conflict that breaks AE2 is one where every input of recipe A is also an input of
-  recipe B (programmed circuits included): a bus loaded for B could then run A. That is an error.
-  Recipes that merely share some inputs are listed in the report; distinct input buses keep them apart.
+- **Conflict rule.** A conflict is two recipes of one machine type where every input of one (programmed
+  circuit included) is also an input of the other: a bus loaded for the larger can run the smaller. Only a
+  different circuit fixes that, so it's an error. The simulator's checks use the same rule.
 - **What the GameTests found and fixed**: GTM's stock conveyor recipes use programmed circuit 1 (the
   design didn't record it), and GTM's casing recipes use circuit 6. Retrofit kits take the same plates and
   frame boxes as casings, so they now use **circuit 7** (decision `kit-circuit`); otherwise a bus loaded for
@@ -85,3 +87,29 @@ Recorded in `design/multiblocks.yaml` → `decisions`:
   `higher-tier-machine-builds` in the slice file); the design only had the first tier of each.
 - **Gate for later phases**: our own items, machines and recipe types don't exist until phases 3 and 4.
   `DesignTests.NOT_YET_BUILT` lists what is skipped; each phase narrows it and it's empty at the end.
+
+### Phase 2 review (independent agent) and what changed
+- **Fluids and distinct buses (the review's blocker).** In GTM 7.5.3 a distinct input bus never sees a
+  fluid hatch, so recipes with fluids (conveyors, cables, the bearing) can't be fed through distinct buses.
+  GTM's tool for them is the **colour group**: dye an input bus and a fluid hatch the same colour. The
+  validator now works out, for each multiblock, how its recipes split into input groups that AE2 can feed
+  without wrong crafts (no recipe's inputs all also belong to other recipes in its group), and checks
+  that against the hatch limits (6 input buses, 2 fluid hatches). Every machine fits with HV buses. With
+  the small buses a player starts with, one Component Assembler or Assembly Hall can't hold every recipe
+  at once (10 and 13 groups); that's a warning, and the answer in play is several machines or bigger
+  buses. The grouping is listed in `docs/validation-report.md`, and the AE2 decision in the slice file
+  has a note about colour groups.
+- **Answers from Anthony**: a machine holds at most **one of each module** (the simulator now refuses
+  duplicates); the batch bus's lubricant is charged **per parallel**; hard mode stays as configured (wood,
+  dye and vanilla-block nerfs off; decision `hard-mode-scope`).
+- **Honesty about the gate**: in phase 2 none of our own recipes could load (they all use phase 3 items), so
+  the two GameTests for our recipes checked nothing yet. They become real in phase 3 (now) and phase 4.
+- Other fixes: a GameTest that nothing but our recipe makes a replaced item (catches a wrong removal ID);
+  the disabled multiblocks' IDs are checked; validator checks fluid/item mix-ups, that every changed recipe
+  names what it replaces, that component recipes and component items agree, and that frame IDs agree
+  between the two design files; bonus cases now cover overfilled slots, duplicate modules, and per-recipe
+  timing and EU/t (overclocking after modules), one case per line; module data has names, effect text,
+  `lock_duration` and `upkeep_per_parallel` with the fluid ID; kit size comes from the design; stray
+  generated scripts are detected.
+- Not changed: GameTest expectations ship inside the addon jar (small, harmless); disabled multiblocks are
+  hidden from JEI but still show in the creative tab.

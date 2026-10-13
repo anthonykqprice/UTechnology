@@ -434,6 +434,12 @@ decisions:
       non-blocking pattern providers working, so parallels raised by research fill
       without re-encoding patterns.
     revised: 2026-10-13 (first version banned conflicts)
+    gtm_note: >-
+      In GTM 7.5.3 a distinct input bus sees only its own slots, never a fluid hatch.
+      Recipes with fluids are kept apart with GTM's colour groups instead: dye an input
+      bus and a fluid hatch the same colour and they form their own group. A machine's
+      two fluid hatches allow two such groups. tools/validate.py checks every multiblock
+      against this (docs/validation-report.md lists the groups).
   - id: per-machine-upgrades
     decided: 2026-10-13
     decision: >-
@@ -456,6 +462,13 @@ decisions:
       They duplicate our upgradeable multiblocks and would make them obsolete
       later. large_cutter also switches between two recipe types, which the pack's
       rules don't allow.
+  - id: hard-mode-scope
+    decided: 2026-10-13
+    decision: >-
+      GTM's hard recipe options are on (circuits, controllers, redstone, tools and
+      armor, bricks, misc, plus the defaults). Wood nerfs, hard dye recipes and
+      removeVanillaBlockRecipes stay off.
+    why: On a skyblock start those mostly add tedium without a new mechanic.
   - id: higher-tier-machine-builds
     decided: 2026-10-13
     decision: >-

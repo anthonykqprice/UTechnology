@@ -18,7 +18,9 @@ class ValidatorTests(unittest.TestCase):
         recipes = validate.all_recipes(d)
         validate.check_recipes(d, rep, recipes)
         validate.check_items(d, rep, recipes)
+        validate.check_consistency(d, rep, recipes)
         validate.check_conflicts(d, rep, recipes)
+        validate.check_isolation(d, rep, recipes)
         return rep
 
     def test_design_is_clean(self):
@@ -46,6 +48,34 @@ class ValidatorTests(unittest.TestCase):
         errs = self.run_checks(d).errors
         self.assertTrue(any("unobtainium" in e and "neither defined" in e for e in errs))
         self.assertTrue(any("unobtainium" in e and "no game ID" in e for e in errs))
+
+    def test_too_many_fluid_groups_is_an_error(self):
+        d = copy.deepcopy(self.d)
+        # three fluid recipes in the Assembly Hall that each consist only of inputs the others also use
+        for i, extra in enumerate(["wire_tin_single", "wire_copper_single", "wire_gold_single"]):
+            d.slice["recipes"].append({"id": f"y{i}", "status": "new", "machine": "assembler", "eut": 7, "duration": 1,
+                                       "circuit": 20 + i, "in": {extra: 1, "plate_steel": 1}, "fluid_in": {"rubber_fluid": 1},
+                                       "out": {"cable_tin_single": 1}})
+            d.slice["recipes"].append({"id": f"z{i}", "status": "new", "machine": "assembler", "eut": 7, "duration": 1,
+                                       "circuit": 20 + i, "in": {extra: 1}, "fluid_in": {"rubber_fluid": 1, "lubricant": 1},
+                                       "out": {"cable_tin_single": 1}})
+        rep = self.run_checks(d)
+        self.assertTrue(any("colour groups" in e for e in rep.errors), rep.errors)
+
+    def test_changed_recipe_needs_replaces(self):
+        d = copy.deepcopy(self.d)
+        d.ids["replaces"].pop("motor_mv")
+        self.assertTrue(any("motor_mv is a changed recipe" in e for e in self.run_checks(d).errors))
+
+    def test_fluid_mismatch(self):
+        d = copy.deepcopy(self.d)
+        d.ids["items"]["lubricant"] = "gtceu:lubricant"
+        self.assertTrue(any("'lubricant'" in e for e in self.run_checks(d).errors))
+
+    def test_frame_ids_agree(self):
+        d = copy.deepcopy(self.d)
+        d.framework["frames"]["steel"]["casing"] = "gtceu:steel_brick_casing"
+        self.assertTrue(any("frame steel: casing" in e for e in self.run_checks(d).errors))
 
     def test_fractional_ticks_rejected(self):
         with self.assertRaises(ValueError):

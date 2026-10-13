@@ -135,28 +135,105 @@ def check_conflicts(d, rep, recipes):
     return subset, shared
 
 
+def machine_recipes(d, key, recipes):
+    """Recipes a multiblock runs (its recipe type and component filter)."""
+    m = d.slice["machines"][key]
+    out = []
+    for r in recipes:
+        if r["machine"] not in m["runs"]:
+            continue
+        comp = bool(r.get("component"))
+        if (m.get("filter") == "component" and not comp) or (m.get("filter") == "not_component" and comp):
+            continue
+        out.append(r)
+    return out
+
+
+def covered(keys, others):
+    """True if every input of a recipe is also an input of some recipe in others."""
+    union = set().union(*others) if others else set()
+    return keys <= union
+
+
+def group_ok(group):
+    keys = [input_keys(r) for r in group]
+    return not any(covered(k, keys[:i] + keys[i + 1:]) for i, k in enumerate(keys))
+
+
+def isolation_groups(recipes, tier_of=lambda r: 1):
+    """
+    Split a machine's recipes into input groups that AE2 can feed without wrong crafts: within a group, no
+    recipe's inputs are all also inputs of the group's other recipes (or a pattern provider pushing those
+    recipes could make it). Recipes with fluids need groups that hold a fluid hatch. Greedy, largest first.
+    """
+    def fits(group):
+        # one bus holds the group's distinct items: the bus of the group's highest tier, or the smallest bus
+        # that holds its largest recipe (recipes too big for their tier's bus are listed under Bus sizes)
+        items = {k for r in group for k in r.get("in", {})}
+        cap = max([bus_slots(max(tier_of(r) for r in group))] + [len(r.get("in", {})) for r in group])
+        return len(items) <= cap
+
+    groups = []
+    for r in sorted(recipes, key=lambda r: (-len(input_keys(r)), r["id"])):
+        for g in groups:
+            cand = g["recipes"] + [r]
+            if bool(g["fluids"]) == bool(r.get("fluid_in")) and group_ok(cand) and fits(cand):
+                g["recipes"].append(r)
+                break
+        else:
+            groups.append({"fluids": bool(r.get("fluid_in")), "recipes": [r]})
+    return groups
+
+
+def check_isolation(d, rep, recipes):
+    """
+    AE2 feeding per multiblock. GTM 7.5.3: a distinct bus sees only its own slots (plus energy), never a fluid
+    hatch; recipes with fluids are kept apart by dyeing a bus and a fluid hatch the same colour (a colour group).
+    Error if a machine can't separate its recipes even with the largest bus the design reaches (HV, 16 slots).
+    The report also lists the grouping with each recipe's own-tier bus, which is what a player starts with.
+    """
+    lim = d.framework["hatches"]["limits"]
+    max_buses, max_fluid = lim["item_input_bus"]["max"], lim["fluid_input_hatch"]["max"]
+    top = max(TIERS.index(f["max_voltage"]) for f in d.framework["frames"].values())
+    rows = []
+    for key, m in d.slice["machines"].items():
+        if m["kind"] != "multiblock":
+            continue
+        rs = machine_recipes(d, key, recipes)
+        best = isolation_groups(rs, lambda r: top)
+        nfluid = sum(1 for g in best if g["fluids"])
+        if len(best) > max_buses:
+            rep.error(f"{key}: even with {TIERS[top]} buses its recipes need {len(best)} separate input groups for AE2; "
+                      f"a machine has at most {max_buses} input buses")
+        if nfluid > max_fluid:
+            rep.error(f"{key}: its fluid recipes need {nfluid} colour groups, each with its own fluid hatch; a machine "
+                      f"has at most {max_fluid} fluid input hatches")
+        start = isolation_groups(rs, lambda r: lowest_machine_tier(d, r))
+        rows.append({"machine": key, "best": best, "start": start, "top": TIERS[top]})
+        if len(start) > max_buses:
+            rep.warn(f"{key}: with each recipe's own-tier buses, running all {len(rs)} of its recipes from one machine "
+                     f"needs {len(start)} input groups (it has {max_buses} buses); split them over several machines or "
+                     f"use bigger buses ({len(best)} groups with {TIERS[top]} buses)")
+    return rows
+
+
 def lowest_machine_tier(d, r):
-    """Lowest tier at which a machine in the design can run this recipe (no machine runs at ULV)."""
+    """Lowest tier of a multiblock frame that runs this recipe (it's what bus size the player starts with)."""
     need = recipe_tier(r["eut"])
     tiers = []
     for key, m in d.slice["machines"].items():
-        if m["kind"] == "multiblock":
-            if r["machine"] not in m["runs"]:
-                continue
-            flt = m.get("filter")
-            comp = bool(r.get("component"))
-            if (flt == "component" and not comp) or (flt == "not_component" and comp):
-                continue
+        if m["kind"] == "multiblock" and r in machine_recipes(d, key, [r]):
             tiers += [TIERS.index(f["max_voltage"]) for f in d.framework["frames"].values()]
-        elif key == r["machine"]:
-            tiers += [TIERS.index(t) for t in m["tiers"]]
     ok = [t for t in tiers if t >= need]
     return min(ok) if ok else need
 
 
 def check_buses(d, rep, recipes):
+    """Recipes run by a multiblock whose distinct item inputs don't fit one input bus of their tier."""
     rows = []
     for r in recipes:
+        if not any(r in machine_recipes(d, k, [r]) for k, m in d.slice["machines"].items() if m["kind"] == "multiblock"):
+            continue
         n = len(r.get("in", {}))
         t = lowest_machine_tier(d, r)
         if n > bus_slots(t):
@@ -167,7 +244,38 @@ def check_buses(d, rep, recipes):
     return rows
 
 
-def write_report(rep, subset, shared, buses):
+def check_consistency(d, rep, recipes):
+    items = d.slice["items"]
+    # fluid flags match the IDs
+    for k, gid in d.ids["items"].items():
+        is_fluid = gid.startswith("fluid:")
+        if k in items and bool(items[k].get("fluid")) != is_fluid:
+            rep.error(f"'{k}': slice items say fluid={bool(items[k].get('fluid'))}, design/ids.yaml says {gid}")
+    for r in recipes:
+        for k in r.get("in", {}):
+            if d.ids["items"].get(k, "").startswith("fluid:"):
+                rep.error(f"{r['id']}: '{k}' is a fluid but listed under item inputs")
+        for k in r.get("fluid_in", {}):
+            if k in d.ids["items"] and not d.ids["items"][k].startswith("fluid:"):
+                rep.error(f"{r['id']}: '{k}' is an item but listed under fluid inputs")
+    # changed recipes say which stock recipes they replace
+    for r in d.recipes_with_status("changed"):
+        if not d.ids.get("replaces", {}).get(r["id"]):
+            rep.error(f"{r['id']} is a changed recipe but design/ids.yaml 'replaces' doesn't name the stock recipes it replaces")
+    # component recipes (the Component Assembler's filter) make exactly the component items
+    comp_out = {k for r in d.slice["recipes"] if r.get("component") for k in r["out"]}
+    comp_items = {k for k, it in items.items() if it.get("kind") == "component"}
+    if comp_out != comp_items:
+        rep.error(f"recipes marked component make {sorted(comp_out)}, but component items are {sorted(comp_items)}")
+    # frame materials agree between multiblocks.yaml and ids.yaml
+    for key, f in d.framework["frames"].items():
+        if d.ids["items"].get("casing_" + key) != f["casing"]:
+            rep.error(f"frame {key}: casing {f['casing']} != design/ids.yaml casing_{key}")
+        if d.ids["items"].get("frame_" + key) != f["frame_box"]:
+            rep.error(f"frame {key}: frame box {f['frame_box']} != design/ids.yaml frame_{key}")
+
+
+def write_report(rep, subset, shared, buses, isolation):
     lines = ["# Validation report", "",
              "Generated by `tools/validate.py` from design/. Do not edit.", "",
              f"Errors: {len(rep.errors)}. Warnings: {len(rep.warnings)}.", ""]
@@ -176,17 +284,34 @@ def write_report(rep, subset, shared, buses):
     if rep.warnings:
         lines += ["## Warnings", ""] + [f"- {w}" for w in rep.warnings] + [""]
     lines += ["## Recipe conflicts", "",
-              "Recipes in one machine type that accept the same inputs (CLAUDE.md). Subset conflicts are errors;",
-              "this design has " + (f"{len(subset)}." if subset else "none."), "",
-              "Recipes that only share some inputs are fine with distinct input buses (a pattern provider in",
-              "non-blocking mode feeding its own bus). They would mix in a pooled bus:", "",
-              "| Machine | Recipe | Recipe | Shared inputs |", "|---|---|---|---|"]
-    lines += [f"| {t} | {a} | {b} | {', '.join(s)} |" for t, a, b, s in shared]
-    lines += ["", "## Bus sizes", "",
-              "Recipes with more distinct item inputs than one input bus holds at the lowest tier that runs them.",
-              "Pooled buses (normal mode) hold them; a distinct bus needs the tier on the right.", "",
-              "| Recipe | Item inputs | Lowest machine tier | Bus slots there | Distinct bus needed |", "|---|---|---|---|---|"]
+              "Two recipes in one machine type conflict when every input of one (items, fluids, programmed circuit) is",
+              "also an input of the other: an input bus loaded for the larger recipe can run the smaller one, and only a",
+              "different programmed circuit fixes that. These are errors; this design has " + (f"{len(subset)}." if subset else "none."), "",
+              "## Feeding the multiblocks with AE2", "",
+              "A pattern provider in non-blocking mode pushes each recipe's inputs into the machine. If one recipe's inputs",
+              "are all also inputs of other recipes fed into the same bus, AE2's pushes for those recipes can make it",
+              "instead. So recipes are split into input groups that can't do that. Item-only recipes go in a **distinct**",
+              "input bus. In GTM 7.5.3 a distinct bus never sees a fluid hatch, so recipes with fluids use a **colour",
+              "group**: an input bus and a fluid hatch dyed the same colour. A machine has at most 6 input buses and 2",
+              "fluid hatches. Groups below are found greedily; any grouping that respects the rule works.", ""]
+    for row in isolation:
+        for label, groups, note in (("with each recipe's own-tier bus", row["start"], ""),
+                                    (f"with {row['top']} buses", row["best"], "")):
+            lines += [f"**{row['machine']}**, {label}: {len(groups)} groups", ""]
+            for i, g in enumerate(groups, 1):
+                kind = "colour group" if g["fluids"] else "distinct bus"
+                lines.append(f"{i}. {kind}: {', '.join(r['id'] for r in g['recipes'])}")
+            lines.append("")
+    lines += ["## Bus sizes", "",
+              "Multiblock recipes with more distinct item inputs than one input bus of their tier holds (GTM buses",
+              "hold (1 + tier)^2 slots: LV 4, MV 9, HV 16; the programmed circuit has its own slot). At that tier",
+              "they need a bigger bus to be fed on their own.", "",
+              "| Recipe | Item inputs | Lowest machine tier | Bus slots there | Bus that holds it |", "|---|---|---|---|---|"]
     lines += [f"| {r} | {n} | {t} | {s} | {nt} |" for r, n, t, s, nt in buses]
+    lines += ["", "## Recipes that share some inputs", "",
+              "Not conflicts: each still needs inputs the other doesn't have. Listed for reference.", "",
+              "| Machine type | Recipe | Recipe | Shared inputs |", "|---|---|---|---|"]
+    lines += [f"| {t} | {a} | {b} | {', '.join(s)} |" for t, a, b, s in shared]
     text = "\n".join(lines) + "\n"
     path = ROOT / "docs/validation-report.md"
     changed = not path.exists() or path.read_text() != text
@@ -200,17 +325,18 @@ def main():
     recipes = all_recipes(d)
     check_recipes(d, rep, recipes)
     check_items(d, rep, recipes)
+    check_consistency(d, rep, recipes)
     subset, shared = check_conflicts(d, rep, recipes)
+    isolation = check_isolation(d, rep, recipes)
     buses = check_buses(d, rep, recipes)
-    changed = write_report(rep, subset, shared, buses)
+    changed = write_report(rep, subset, shared, buses, isolation)
     if "--check" in sys.argv and changed:
         rep.error("docs/validation-report.md was stale (now regenerated; commit it)")
     for w in rep.warnings:
         print("warning:", w)
     for e in rep.errors:
         print("error:", e)
-    print(f"validator: {len(rep.errors)} errors, {len(rep.warnings)} warnings, {len(shared)} shared-input pairs, "
-          f"{len(buses)} bus-size notes (docs/validation-report.md)")
+    print(f"validator: {len(rep.errors)} errors, {len(rep.warnings)} warnings (docs/validation-report.md)")
     sys.exit(1 if rep.errors else 0)
 
 

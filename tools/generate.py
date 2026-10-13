@@ -135,15 +135,21 @@ def frames_json(d):
 def modules_json(d):
     out = {}
     for key, m in d.framework["module_definitions"].items():
+        lock = key == "specialization_lock"
         out[key] = {
             "_comment": HEADER,
             "item": d.item_id("module_" + key),
+            "name": key.replace("_", " ").title(),
+            "effect": m["effect"],
             "unlocked_at": m["unlocked_at"],
-            "lock": key == "specialization_lock",
-            "duration": m.get("duration", 1.0),
+            # the lock runs only one recipe; lock_duration applies to that recipe only
+            "lock": lock,
+            "lock_duration": m.get("duration", 1.0) if lock else 1.0,
+            "duration": 1.0 if lock else m.get("duration", 1.0),
             "energy": m.get("energy", 1.0),
             "parallels": m.get("parallels", 1.0),
-            "upkeep": [{"fluid": d.fluid_id(k), "amount": v} for k, v in (m.get("upkeep") or {}).items()],
+            # fluid consumed per parallel (decision batch-bus-upkeep)
+            "upkeep_per_parallel": [{"fluid": d.fluid_id(k), "amount": v} for k, v in (m.get("upkeep") or {}).items()],
         }
     return out
 
@@ -164,7 +170,7 @@ def multiblocks_json(d):
             "component_items": sorted(d.item_id(k) for k, it in d.slice["items"].items() if it.get("kind") == "component"),
             "max_segments_built": fw["structure"]["max_segments_built"],
             "hatch_limits": {k: {"min": v["min"], "max": v["max"]} for k, v in lim.items()},
-            "casings_per_kit": 8,
+            "casings_per_kit": fw["retrofit"]["casings_per_kit"],
         }
     return out
 
@@ -182,7 +188,9 @@ def expectations(d):
             for r in d.recipes_with_status("changed") + d.recipes_with_status("new") + d.build_recipes()]
     return {
         "_comment": HEADER,
-        "ids": sorted(set(d.all_game_ids())),
+        "ids": sorted(set(d.all_game_ids()) | set(d.ids["disabled_multiblocks"])),
+        # items our changed recipes make: no other recipe may make them (catches a wrong removal ID)
+        "replaced_outputs": {d.item_id(k): d.recipe_id(r) for r in d.recipes_with_status("changed") for k in r["out"]},
         "removed_recipes": d.removed_recipe_ids(),
         "disabled_multiblocks": d.ids["disabled_multiblocks"],
         "stock_recipes": stock,
@@ -196,13 +204,16 @@ def main():
     d = design.load()
     write("pack/kubejs/server_scripts/generated/recipes.js", recipes_js(d))
     write("pack/kubejs/client_scripts/generated/hide.js", hide_js(d))
+    clean_dir("pack/kubejs/server_scripts/generated", {"recipes.js"})
+    clean_dir("pack/kubejs/client_scripts/generated", {"hide.js"})
     for sub, objs in (("upgrade_frames", frames_json(d)), ("upgrade_modules", modules_json(d)),
                       ("upgrade_multiblocks", multiblocks_json(d))):
         base = f"pack/kubejs/data/utechnology/{sub}"
         for k, v in objs.items():
             write_json(f"{base}/{k}.json", v)
         clean_dir(base, {f"{k}.json" for k in objs})
-    cases = subprocess.run(["node", str(ROOT / "tools/sim-cases.js")], check=True, capture_output=True, text=True).stdout
+    cases = subprocess.run(["node", str(ROOT / "tools/sim-cases.js"), json.dumps(d.ids["items"])],
+                           check=True, capture_output=True, text=True).stdout
     write("addon/src/test/resources/bonus_cases.json", cases + "\n")
     write_json("addon/src/main/resources/data/utechnology/gametest/expectations.json", expectations(d))
     if CHECK and STALE:

@@ -12,7 +12,10 @@
   `docs/validation-report.md`. GameTests check the live game: IDs exist, stock recipes still match
   GTM 7.5.3, replaced recipes are gone, our recipes loaded as designed and don't conflict.
 - `pack/config/gtceu.yaml`: GTM's hard recipe options on (except wood and dye nerfs).
-- Design: conveyors' stock circuit 1 recorded; build recipes are assembler recipes one tier below
+- Validator models AE2 feeding with distinct buses and colour groups (GTM 7.5.3: distinct buses don't see
+  fluid hatches) against the hatch limits, and lists each machine's input groups.
+- Design: one of each module per machine; batch bus lubricant per parallel; hard-mode scope recorded;
+  conveyors' stock circuit 1 recorded; build recipes are assembler recipes one tier below
   (decision build-recipes); retrofit kits use circuit 7 (kit-circuit); MV/HV coil winder and HV
   bearing press builds added.
 

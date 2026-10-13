@@ -25,6 +25,9 @@
   "gtceu:hv_electric_piston",
   "gtceu:hv_machine_hull",
   "gtceu:hv_robot_arm",
+  "gtceu:large_assembler",
+  "gtceu:large_cutter",
+  "gtceu:large_wiremill",
   "gtceu:lv_assembler",
   "gtceu:lv_conveyor_module",
   "gtceu:lv_electric_motor",
@@ -92,6 +95,10 @@
   "utechnology:turning_line",
   "utechnology:wire_drawing_line"
  ],
+ "replaced_outputs": {
+  "gtceu:mv_electric_motor": "utechnology:assembler/motor_mv",
+  "gtceu:hv_electric_motor": "utechnology:assembler/motor_hv"
+ },
  "removed_recipes": [
   "gtceu:assembler/electric_motor_mv",
   "gtceu:shaped/electric_motor_mv",

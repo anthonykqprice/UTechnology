@@ -41,6 +41,7 @@ function resolveGroup(data, g) {
     const mod = defs[k];
     if (!mod) continue;
     if (tierIndex(mod.unlocked_at) > frameTier) { warnings.push(`${title(k)} needs at least a ${mod.unlocked_at} frame`); continue; }
+    if (used.includes(k)) { warnings.push(`${title(k)} is already installed; one of each module per machine`); continue; }
     if (used.length >= f.module_slots) { warnings.push(`${title(frameKey)} frame has ${f.module_slots} module slot${f.module_slots > 1 ? "s" : ""}; ${title(k)} ignored`); continue; }
     used.push(k);
     if (k === "specialization_lock") { lockDuration = mod.duration || 0.5; continue; }
@@ -186,14 +187,15 @@ function checks(data) {
   const conflicts = [], bus = [];
   const byMachine = {};
   for (const r of data.recipes) (byMachine[r.machine] = byMachine[r.machine] || []).push(r);
-  const key = r => Object.keys(r.in || {}).sort().join("+") + "|" + Object.keys(r.fluid_in || {}).sort().join("+");
+  // A conflict: every input of one recipe (items, fluids, programmed circuit) is also an input of another,
+  // so an input bus loaded for the larger recipe can run the smaller one. Only a different circuit fixes it.
+  // Same rule as tools/validate.py.
+  const keys = r => new Set(Object.keys(r.in || {}).concat(Object.keys(r.fluid_in || {}).map(k => "fluid:" + k), r.circuit != null ? ["circuit:" + r.circuit] : []));
+  const subset = (a, b) => [...a].every(k => b.has(k));
   for (const [mach, list] of Object.entries(byMachine)) {
-    const groups = {};
-    for (const r of list) (groups[key(r)] = groups[key(r)] || []).push(r);
-    for (const g of Object.values(groups)) if (g.length > 1) {
-      const circuits = g.map(r => r.circuit);
-      const resolved = new Set(circuits).size === g.length && circuits.every(c => c != null);
-      conflicts.push({ machine: mach, recipes: g.map(r => r.id), resolved, how: resolved ? "programmed circuits" : "unresolved" });
+    for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+      const a = keys(list[i]), b = keys(list[j]);
+      if (subset(a, b) || subset(b, a)) conflicts.push({ machine: mach, recipes: [list[i].id, list[j].id], resolved: false, how: "give them different programmed circuits" });
     }
   }
   // lowest tier at which some machine type can run the recipe (no machine exists at ULV)

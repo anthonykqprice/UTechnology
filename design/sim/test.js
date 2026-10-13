@@ -52,11 +52,15 @@ assert.strictEqual(c.conflicts.length, 0, JSON.stringify(c.conflicts));
 const busIds = c.bus.map(b => b.recipe).sort();
 assert.deepStrictEqual(busIds, ["piston_hv", "piston_lv", "piston_mv", "robot_arm_hv", "robot_arm_lv", "robot_arm_mv"]);
 assert(c.bus.every(b => b.singleBusTier === "MV"));
-// a synthetic conflict is detected, and circuits resolve it
+// a synthetic conflict is detected (its inputs are a subset of copper wire's, circuit 1), and a different circuit resolves it
 const d2 = JSON.parse(JSON.stringify(data));
 d2.recipes.push({ id: "x1", machine: "wiremill", eut: 7, duration: 1, in: { ingot_copper: 1 }, out: { wire_copper_single: 1 } });
 let c2 = checks(d2); assert.strictEqual(c2.conflicts.length, 1); assert.strictEqual(c2.conflicts[0].resolved, false);
-d2.recipes[d2.recipes.length - 1].circuit = 2; c2 = checks(d2); assert.strictEqual(c2.conflicts[0].resolved, true);
+d2.recipes[d2.recipes.length - 1].circuit = 2; c2 = checks(d2); assert.strictEqual(c2.conflicts.length, 0);
+
+// one of each module per machine (decision one-module-per-type)
+G = resolveGroup(data, { type: "component_assembler", frame: "stainless_steel", segments: 4, modules: ["batch_bus", "batch_bus"], count: 1 });
+assert.strictEqual(G.parallels, 8); assert(G.warnings.some(w => /already installed/.test(w)));
 
 // 9. build cost: one 4-segment steel turning line
 const need = buildItems(data, [{ type: "turning_line", frame: "steel", segments: 4, modules: [], count: 1 }]);

@@ -132,6 +132,27 @@ public class DesignTests {
         report(h, "removed recipes", problems);
     }
 
+    /** Nothing but our changed recipe makes an item it replaces (catches a wrong removal ID). */
+    @GameTest(template = "empty")
+    public static void replacedItemsOnlyFromOurRecipes(GameTestHelper h) {
+        Map<String, String> replaced = new HashMap<>();
+        expectations().getAsJsonObject("replaced_outputs").entrySet()
+                .forEach(e -> replaced.put(e.getKey(), e.getValue().getAsString()));
+        List<String> problems = new ArrayList<>();
+        for (var r : h.getLevel().getRecipeManager().getRecipes()) {
+            Set<String> outs = new HashSet<>();
+            if (r instanceof GTRecipe gt) outs.addAll(RecipeView.of(gt).outputs().keySet());
+            else {
+                var out = r.getResultItem(h.getLevel().registryAccess());
+                if (!out.isEmpty()) outs.add(BuiltInRegistries.ITEM.getKey(out.getItem()).toString());
+            }
+            for (String o : outs)
+                if (replaced.containsKey(o) && !replaced.get(o).equals(r.getId().toString()))
+                    problems.add(r.getId() + " makes " + o + ", which only " + replaced.get(o) + " should make");
+        }
+        report(h, "replaced items", problems);
+    }
+
     @GameTest(template = "empty")
     public static void ourRecipesLoadedAsDesigned(GameTestHelper h) {
         RecipeManager rm = h.getLevel().getRecipeManager();
