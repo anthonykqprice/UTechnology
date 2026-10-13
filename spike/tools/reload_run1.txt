@@ -1,0 +1,14 @@
+forceload add 0 0
+fill 0 -59 0 2 -57 5 gtceu:solid_machine_casing
+fill 1 -58 1 1 -58 4 gtceu:assembly_line_grating
+setblock 0 -59 0 gtceu:hv_energy_input_hatch
+setblock 1 -59 0 gtceu:lv_input_bus
+setblock 2 -59 0 gtceu:lv_output_bus
+setblock 1 -58 0 utspike:spike_segment_assembler[facing=north]
+sleep 5
+utspike machine 1 -58 0
+ftbteams server create spiketeam
+utspike research grant spiketeam
+utspike research list
+save-all flush
+stop
