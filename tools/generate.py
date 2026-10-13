@@ -4,7 +4,7 @@
 Reads:  design/slice1-mechanical.yaml, design/multiblocks.yaml, design/ids.yaml
 Writes (all marked "generated, do not edit"):
   pack/kubejs/server_scripts/generated/recipes.js      changed, new and build recipes; removals
-  pack/kubejs/client_scripts/generated/hide.js         hides the disabled stock multiblocks in JEI
+  pack/kubejs/assets/emi/index/stacks/utechnology.json  hides the disabled stock multiblocks in EMI
   pack/kubejs/data/utechnology/upgrade_frames/*.json   frames (addon reads these)
   pack/kubejs/data/utechnology/upgrade_modules/*.json  modules
   pack/kubejs/data/utechnology/upgrade_multiblocks/*.json  the four multiblocks
@@ -105,13 +105,10 @@ def recipes_js(d):
     return "\n".join(out) + "\n"
 
 
-def hide_js(d):
-    lines = [f"// {HEADER}", "// Disabled stock multiblocks are hidden from JEI.", "",
-             "JEIEvents.hideItems(event => {"]
-    for mid in d.ids["disabled_multiblocks"]:
-        lines.append(f"  event.hide({js_str(mid)})")
-    lines.append("})")
-    return "\n".join(lines) + "\n"
+def emi_hidden_json(d):
+    """EMI's index file (KubeJS serves kubejs/assets as a resource pack): removed stacks are hidden from EMI."""
+    return json.dumps({"_comment": HEADER + " Disabled stock multiblocks are hidden from EMI.",
+                       "removed": [f"item:{mid}" for mid in d.ids["disabled_multiblocks"]]}, indent=2) + "\n"
 
 
 # ---------------------------------------------------------------- data pack JSON for the addon
@@ -366,8 +363,8 @@ def refresh_pack_index():
 def main():
     d = design.load()
     write("pack/kubejs/server_scripts/generated/recipes.js", recipes_js(d))
-    write("pack/kubejs/client_scripts/generated/hide.js", hide_js(d))
-    clean_dir("pack/kubejs/client_scripts/generated", {"hide.js"})
+    write("pack/kubejs/assets/emi/index/stacks/utechnology.json", emi_hidden_json(d))
+    clean_dir("pack/kubejs/client_scripts/generated", set())
     for sub, objs in (("upgrade_frames", frames_json(d)), ("upgrade_modules", modules_json(d)),
                       ("upgrade_multiblocks", multiblocks_json(d))):
         base = f"pack/kubejs/data/utechnology/{sub}"

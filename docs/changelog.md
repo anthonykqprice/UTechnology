@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### 2026-10-13: EMI replaces JEI
+- The recipe viewer is now EMI 1.1.24 (pinned). GregTech and AE2 both support it natively, including AE2 pattern
+  encoding from EMI recipes. Checked in a real client: GregTech recipe pages show tooltips, our Coil Winder page
+  works, and the disabled Large Wire Factory, Large Assembling Factory and Large Cutter are hidden.
+- The disabled multiblocks are hidden with EMI's own index file (`pack/kubejs/assets/emi/index/stacks/utechnology.json`,
+  generated) instead of a KubeJS JEI script.
+
 ### 2026-10-13: JEI tooltips on GregTech recipe pages
 - Fixed: hovering items on GregTech machine recipe pages in JEI showed no tooltip. JEI 15.56 changed internals that
   GregTech 7.5.3 and its UI library patch. JEI is now pinned to 15.20.0.134, the newest build GregTech works with.

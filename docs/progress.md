@@ -273,3 +273,7 @@ frame voltage; only inputs and output space limit parallels. Recorded as decisio
   client on the build VM (`./gradlew runClient` on a virtual display): with 15.56 GregTech's fluid-tooltip patch fails;
   with 15.20.0.134 the bender page shows item tooltips. JEI is pinned to 15.20.0.134 (docs/mods.md), and a test keeps
   the addon's dev mods equal to the pack's.
+- **EMI instead of JEI** (suggested from play-testing). GregTech Modern ships a native EMI plugin and AE2 15.4 an EMI
+  module with pattern encoding, and JEI's working versions for GregTech 7.5.3 are betas. EMI 1.1.24 checked in the dev
+  client: GregTech's and LDLib's EMI patches apply, GregTech recipe pages show tooltips, the Coil Winder page shows
+  our recipe, and the disabled multiblocks are hidden (EMI index file generated from `design/ids.yaml`).

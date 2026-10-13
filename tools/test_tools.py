@@ -104,14 +104,14 @@ class PackTests(unittest.TestCase):
         props = dict(l.split("=", 1) for l in (root / "addon/gradle.properties").read_text().splitlines()
                      if "=" in l and not l.startswith("#"))
         for prop, toml in [("kubejs_modrinth", "kubejs"), ("rhino_modrinth", "rhino"),
-                           ("architectury_modrinth", "architectury-api"), ("jei_modrinth", "jei")]:
+                           ("architectury_modrinth", "architectury-api"), ("emi_modrinth", "emi")]:
             text = (root / f"pack/mods/{toml}.pw.toml").read_text()
             self.assertIn(f'version = "{props[prop].strip()}"', text, f"{prop} differs from pack/mods/{toml}.pw.toml")
 
-    def test_jei_is_pinned(self):
-        """GTM 7.5.3's JEI integration breaks on newer JEI (docs/mods.md); packwiz update must not move it."""
+    def test_emi_is_pinned(self):
+        """GTM 7.5.3 patches EMI internals (docs/mods.md); packwiz update must not move EMI untested."""
         root = pathlib.Path(__file__).resolve().parent.parent
-        self.assertIn("pin = true", (root / "pack/mods/jei.pw.toml").read_text())
+        self.assertIn("pin = true", (root / "pack/mods/emi.pw.toml").read_text())
 
 
 if __name__ == "__main__":

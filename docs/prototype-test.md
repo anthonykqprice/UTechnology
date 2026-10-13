@@ -26,11 +26,11 @@ wrong, send me `logs/latest.log` from the instance folder (and a screenshot for 
 
 - [ ] The **UTechnology** creative tab lists the stator coils, precision bearing, the four core blocks,
   retrofit kits, modules, coil winders, bearing presses and the four multiblock controllers.
-- [ ] JEI: search "stator". The **MV Stator Coil** is made in the **Coil Winder** (1 magnetic steel rod + 4
+- [ ] EMI (the item list beside your inventory): search "stator", hover the **MV Stator Coil** and press **R** for its recipe. It is made in the **Coil Winder** (1 magnetic steel rod + 4
   cupronickel double wire, 10 s, 30 EU/t).
-- [ ] JEI: the **MV Electric Motor** needs 2 LV motors, 1 MV stator coil, 2 aluminium rods and 2 copper cables
+- [ ] EMI: the **MV Electric Motor** needs 2 LV motors, 1 MV stator coil, 2 aluminium rods and 2 copper cables
   (assembler). There is no crafting-table recipe for MV or HV motors.
-- [ ] JEI: **Large Wire Factory**, **Large Assembling Factory** and **Large Cutter** are hidden and have no recipes.
+- [ ] EMI: **Large Wire Factory**, **Large Assembling Factory** and **Large Cutter** are hidden and have no recipes.
 - [ ] Placeholder textures: items use GregTech icons (stator coils look like voltage coils), cores use gearbox
   casing textures. Nothing shows the purple and black "missing texture" pattern. **Note any that do.**
 
@@ -47,7 +47,7 @@ wrong, send me `logs/latest.log` from the instance folder (and a screenshot for 
 With the LV machines from the kit, make: copper wire (wiremill, programmed circuit 1), tin cable (assembler,
 rubber), steel rods (lathe), magnetic steel rod (polarizer), then **LV motors** (assembler).
 
-Build recipes show **10 s** in JEI. A machine one tier higher than the recipe overclocks it (GregTech's normal
+Build recipes show **10 s** in EMI. A machine one tier higher than the recipe overclocks it (GregTech's normal
 rule): for example an LV assembler makes a 7 EU/t build in 5 s at 28 EU/t. That's expected.
 
 - [ ] **Coil winder:** assemble an **LV Coil Winder** (assembler: LV hull, 2 LV motors, 4 copper wire, 2 LV
@@ -56,7 +56,7 @@ rule): for example an LV assembler makes a 7 EU/t build in 5 s at 28 EU/t. That'
   coil (10 s, 120 EU/t). An LV coil winder refuses the HV stator coil (it needs MV power).
 - [ ] **Bearing press (MV)**: 2 stainless steel rings + 1 stainless steel rod + 50 mB lubricant gives 2 precision
   bearings in 8 s.
-- [ ] The machines' screens and JEI show "Coil Winder" and "Bearing Press" as names (not `utechnology.coil_winder`).
+- [ ] The machines' screens and EMI show "Coil Winder" and "Bearing Press" as names (not `utechnology.coil_winder`).
 
 ## 4. Build the four multiblocks
 
@@ -70,7 +70,7 @@ Every multiblock has the same shape, seen from the front (3 wide, 3 tall):
 
 The **steel** frame uses Solid Steel Machine Casings and Steel Frame Boxes. Every multiblock needs at least
 1 maintenance hatch (the kit's are auto-maintenance), 1 energy hatch, 1 input bus and 1 output bus, all in
-casing positions of the front or end. Fluid input hatches (up to 2) are optional. JEI's multiblock preview on
+casing positions of the front or end. Fluid input hatches (up to 2) are optional. EMI's multiblock preview on
 each controller shows the shape.
 
 | Machine | Core | Runs |
@@ -80,7 +80,7 @@ each controller shows the shape.
 | **Wire Drawing Line** | Drawing Die Unit | wiremill recipes |
 | **Turning Line** | Spindle Unit | lathe recipes |
 
-Controllers and cores are assembler recipes (see JEI). Each core takes components, for example the Spindle
+Controllers and cores are assembler recipes (see EMI). Each core takes components, for example the Spindle
 Unit takes 2 LV motors, 1 LV piston and 1 steel frame box.
 
 - [ ] Build a **Turning Line** with a steel frame and 2 segments. **Expect:** it forms; the controller screen
@@ -139,7 +139,7 @@ controller with a module. Sneak + right-click with an empty hand takes the last 
 ## 7. AE2 autocrafting
 
 Set up an ME network from the AE2 kit (controller, drive, cells, the creative energy cell, terminals, cables).
-Encode patterns in the pattern encoding terminal (JEI's "+" button transfers a recipe).
+Encode patterns in the pattern encoding terminal (on an EMI recipe page, the "+" button fills the encoding terminal with that recipe).
 
 How GregTech decides which inputs a recipe may use (GTM 7.5.3):
 - An input bus set to **distinct** (the toggle in the bus's screen) is on its own: a recipe uses only that
@@ -162,7 +162,7 @@ Checks:
 - [ ] **Fill the parallels:** an aluminium Component Assembler with 8 segments, fed LV motor patterns
   by a non-blocking provider into a distinct **MV** input bus (the LV motor needs 4 slots; an MV bus has
   9). Request 64 LV motors. **Expect:** runs at **8 parallels** each (the screen shows "Parallels: up to 8";
-  JEI/Jade show the running recipe), with no stuck items and no wrong crafts.
+  Jade shows the running recipe), with no stuck items and no wrong crafts.
 - [ ] Add segments while it is working. **Expect:** the next run uses the new parallel count with no
   re-encoding.
 - [ ] **Conveyors** through a dyed bus, with rubber in an undyed hatch, run correctly next to motors in a

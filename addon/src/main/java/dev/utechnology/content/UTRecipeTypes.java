@@ -32,7 +32,7 @@ public final class UTRecipeTypes {
     }
 
     static {
-        // JEI category titles and machine UI text use the type's registry name as a lang key
+        // Recipe viewer category titles and machine UI text use the type's registry name as a lang key
         REGISTRATE.addRawLang("utechnology.coil_winder", "Coil Winder");
         REGISTRATE.addRawLang("utechnology.bearing_press", "Bearing Press");
     }

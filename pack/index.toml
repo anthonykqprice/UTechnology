@@ -5,8 +5,8 @@ file = "config/gtceu.yaml"
 hash = "bcb4a5d52f60f05e2d63850aa2e51c58547e1abeb300af0c140e8a082e76160f"
 
 [[files]]
-file = "kubejs/client_scripts/generated/hide.js"
-hash = "8eff6ef5208371e586341760cb6cfda9aec95b29d7dd47975142a8b54f0a5881"
+file = "kubejs/assets/emi/index/stacks/utechnology.json"
+hash = "81d6afb871029f1f60d91f8a2c81a1bd51756e19eaf2a44422297a4d9974fd55"
 
 [[files]]
 file = "kubejs/data/utechnology/upgrade_frames/aluminium.json"
@@ -76,6 +76,11 @@ hash = "5ec0c37f3f4ad07a40c10376668bca80334ddb7ad2bab06eb4de8f7aac339c8e"
 metafile = true
 
 [[files]]
+file = "mods/emi.pw.toml"
+hash = "911833dbb6017ad501f5077cae326b4f544a98337807abad8f5075a543f756d6"
+metafile = true
+
+[[files]]
 file = "mods/entityculling.pw.toml"
 hash = "e5206ecaa7deacbdb38d292be484bd584bac736d1bed2fb20289020a65a7f132"
 metafile = true
@@ -98,11 +103,6 @@ metafile = true
 [[files]]
 file = "mods/jade.pw.toml"
 hash = "5d03d20b037a8b7a4765ded0e25146fc970964be46401dff5f9b1059875084e8"
-metafile = true
-
-[[files]]
-file = "mods/jei.pw.toml"
-hash = "5d5ea0ac866824b48ee2ac14e23192d782e22c6f05819b9cde94b0c5b70282e5"
 metafile = true
 
 [[files]]

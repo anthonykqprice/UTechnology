@@ -12,7 +12,7 @@ packwiz records: client-only mods are left out of a server export.
 | Architectury API | `architectury-9.2.14-forge.jar` | both | Required by KubeJS. Same version GTM 7.5.3 builds against (GTM's `gradle/forge.versions.toml` at tag v7.5.3-1.20.1). | — |
 | Applied Energistics 2 | `appliedenergistics2-forge-15.4.11.jar` | both | The pack's logistics and autocrafting tool, from LV (CLAUDE.md). | GuideME |
 | GuideME | `guideme-20.1.15.jar` | both | AE2's in-game guide book library. | — |
-| Just Enough Items (JEI) | `jei-1.20.1-forge-15.20.0.134.jar` | both | The one recipe viewer. Chosen over EMI because GTM and AE2 both ship mature JEI integrations, including AE2's pattern encoding from JEI. **Pinned to 15.20.0.134** (packwiz `pin`), the newest build of the 15.20 line GTM 7.5.3 is built against (15.20.0.115). Newer JEI (15.21 and up, including the 15.49 and 15.56 releases) changed the internals GTM and LDLib patch: GTM's fluid-tooltip patch no longer applies and item tooltips on GregTech recipe pages disappear (found in play-testing, reproduced with `runClient`). Only move JEI after checking a GregTech recipe page in `runClient`. | — |
+| EMI | `emi-1.1.24+1.20.1+forge.jar` | both | The one recipe viewer. GregTech Modern has a native EMI plugin (recipe pages, multiblock previews, ore pages) and AE2 15.4 has an EMI module with pattern encoding from EMI recipes. Chosen over JEI after play-testing: JEI's newer releases broke GregTech's recipe-page tooltips and the JEI versions that still work with GregTech 7.5.3 are betas; EMI also adds favourites, recipe trees and batch cost. **Pinned to 1.1.24** (packwiz `pin`): GregTech and LDLib patch a few EMI internals, and 1.1.24 is checked in `runClient` (the patches apply, GregTech recipe pages show tooltips, our Coil Winder page and hidden items work). Only move EMI after the same check. Disabled items are hidden through EMI's own resource file (`kubejs/assets/emi/index/stacks/`), since KubeJS 2001 has no EMI hooks. | — |
 | Jade | `Jade-1.20.1-Forge-11.13.3.jar` | both | Shows machine status, recipe progress and parallels when looking at a block. GTM has built-in Jade support. | — |
 | ModernFix | `modernfix-forge-5.27.88+mc1.20.1.jar` | both | Performance: faster launch, less memory. Standard in GT packs. | — |
 | FerriteCore | `ferritecore-6.0.1-forge.jar` | both | Performance: memory use of block states and models. | — |
@@ -21,13 +21,13 @@ packwiz records: client-only mods are left out of a server export.
 | spark | `spark-1.10.53-forge.jar` | both | Profiler, for checking tick time of large multiblocks. | — |
 
 ## Overlap checks
-- One recipe viewer (JEI; no EMI or REI), one block-info overlay (Jade; no The One Probe).
+- One recipe viewer (EMI; no JEI or REI), one block-info overlay (Jade; no The One Probe).
 - One renderer optimisation (Embeddium; no Rubidium or Sodium forks).
 - ModernFix and FerriteCore are routinely used together; ModernFix detects FerriteCore and disables
   its own overlapping patches.
 
 ## Considered and left out
-- **JEI 15.21 and newer** (15.49 and 15.56 releases, 15.62 beta): break GTM 7.5.3's JEI integration (see above). Revisit with GTM 8.
+- **JEI**: replaced by EMI. JEI 15.21 and newer (the 15.49 and 15.56 releases) break GregTech 7.5.3's recipe-page tooltips; only the 15.20 betas work. Not installed alongside EMI either: one recipe viewer is simpler, and EMI covers everything GregTech and AE2 need.
 - **ImmediatelyFast**: its Modrinth versions are labelled inconsistently (packwiz picked a build named
   for 1.20.2), and it is a client-only renderer that can't be tested in CI. Revisit with a client test.
 - **FTB Teams / FTB Quests**: research was superseded by per-machine upgrades, and quests are out of

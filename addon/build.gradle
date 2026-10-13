@@ -87,7 +87,7 @@ dependencies {
     modRuntimeOnly("maven.modrinth:kubejs:${kubejs_modrinth}") { transitive = false }
     modRuntimeOnly("maven.modrinth:rhino:${rhino_modrinth}") { transitive = false }
     modRuntimeOnly("maven.modrinth:architectury-api:${architectury_modrinth}") { transitive = false }
-    modRuntimeOnly("maven.modrinth:jei:${jei_modrinth}") { transitive = false }
+    modRuntimeOnly("maven.modrinth:emi:${emi_modrinth}") { transitive = false }
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
     testImplementation 'com.google.code.gson:gson:2.10.1' // same version Minecraft 1.20.1 ships
@@ -96,8 +96,8 @@ dependencies {
 
 tasks.named('test', Test) { useJUnitPlatform() }
 
-// GameTests and the dev server load the pack's KubeJS scripts and configs, exactly as the pack ships them.
-['run-gametest', 'run-server'].each { runDir ->
+// GameTests, the dev server and the dev client load the pack's KubeJS scripts and configs, exactly as the pack ships them.
+['run-gametest', 'run-server', 'run-client'].each { runDir ->
     def name = runDir.replace('run-', '').capitalize()
     def kjs = tasks.register("syncKubeJS${name}", Sync) {
         from rootProject.file('../pack/kubejs')
@@ -109,7 +109,8 @@ tasks.named('test', Test) { useJUnitPlatform() }
         from rootProject.file('../pack/config')
         into project.file("${runDir}/config")
     }
-    tasks.matching { it.name == (runDir == 'run-gametest' ? 'runGameTestServer' : 'runServer') }.configureEach {
+    def runTask = [ 'run-gametest': 'runGameTestServer', 'run-server': 'runServer', 'run-client': 'runClient' ][runDir]
+    tasks.matching { it.name == runTask }.configureEach {
         dependsOn kjs, cfg
     }
 }
