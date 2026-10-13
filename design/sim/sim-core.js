@@ -76,9 +76,17 @@ function capability(data, G, r, oc) {
   if (G.tier < rt) return null;
   let dmul = G.duration;
   if (G.locked) { if (G.lock !== r.id) return null; dmul *= G.lockDuration; }
-  const n = G.tier - rt;
-  const dur = r.duration * dmul / Math.pow(oc, n);     // seconds per run: modules, then overclocking
-  const eut = r.eut * G.energy * Math.pow(4, n);       // EU/t while running
+  // As GTM 7.5.3 computes it: module multipliers first, each result truncated to whole ticks and EU/t
+  // (ContentModifier), then overclocking judged on the modified EU/t (OverclockingLogic): ULV recipes get one
+  // overclock fewer, and overclocking stops before a recipe would take under 1 tick.
+  const ticks0 = Math.round(r.duration * 20);
+  const ticksMod = dmul === 1 ? ticks0 : Math.floor(ticks0 * dmul);
+  const eutMod = G.energy === 1 ? r.eut : Math.floor(r.eut * G.energy);
+  const rtMod = recipeTier(eutMod);
+  let n = Math.max(0, G.tier - rtMod - (rtMod === 0 ? 1 : 0));
+  while (n > 0 && ticksMod / Math.pow(oc, n) < 1) n--;
+  const dur = Math.floor(ticksMod / Math.pow(oc, n)) / 20;   // seconds per run
+  const eut = eutMod * Math.pow(4, n);                        // EU/t while running (parallels add none)
   const energyPerRun = eut * dur * 20 / G.parallels;  // EU per run: parallels share one recipe's power (decision free-parallels)
   const perRun = dur / G.parallels;                    // machine-seconds per run with parallels
   return { overclocks: n, dur, eut, energyPerRun, runTime: dur, perRun };

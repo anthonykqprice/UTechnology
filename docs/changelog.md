@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### 2026-10-13: Prototype phase 4 (upgradeable multiblocks)
+- Component Assembler, Assembly Hall, Wire Drawing Line and Turning Line on one base class: frames,
+  1-32 segments (counted up to the frame's cap), modules in controller slots, specialization lock, retrofit
+  kits (up and down), recipe filters, voltage capped at the frame, free parallels.
+- Frames, modules and machine specs read from the generated data pack; bonuses cached per machine.
+- Simulator: recipe runs now computed exactly as GTM does (ULV overclock rule, whole ticks and EU/t).
+- Validator: batch-bus feeding limits reported.
+- 187 GameTests, JUnit bonus tests; structure check about 63 µs at 16 segments, 104 µs at 32.
+
 ### 2026-10-13: Prototype phase 3 (items and single-block machines)
 - Addon: stator coils, precision bearing, four core blocks, retrofit kits, modules; coil winder (LV-HV) and
   bearing press (MV-HV) with their recipe types. Recipes come from the generated KubeJS script.

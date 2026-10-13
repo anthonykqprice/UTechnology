@@ -177,7 +177,7 @@ def multiblocks_json(d):
 
 # ---------------------------------------------------------------- GameTest expectations
 
-def expectations(d):
+def expectations(d, recipe_cases):
     stock = []
     for r in d.slice["recipes"]:
         if r["status"] == "stock":
@@ -195,6 +195,12 @@ def expectations(d):
         "disabled_multiblocks": d.ids["disabled_multiblocks"],
         "stock_recipes": stock,
         "our_recipes": ours,
+        # simulator results for whole recipes in a 3-segment machine (tools/sim-cases.js), checked in game
+        "recipe_cases": recipe_cases,
+        # each multiblock's recipe type, core and filter, as the addon registers them
+        "multiblocks": {k: {"recipe_type": d.recipe_type(d.slice["machines"][k]["runs"][0]),
+                            "core": d.item_id(m["core"]["id"]), "controller": d.item_id("controller_" + k)}
+                        for k, m in d.mb["machines"].items()},
     }
 
 
@@ -215,7 +221,8 @@ def main():
     cases = subprocess.run(["node", str(ROOT / "tools/sim-cases.js"), json.dumps(d.ids["items"])],
                            check=True, capture_output=True, text=True).stdout
     write("addon/src/test/resources/bonus_cases.json", cases + "\n")
-    write_json("addon/src/main/resources/data/utechnology/gametest/expectations.json", expectations(d))
+    write_json("addon/src/main/resources/data/utechnology/gametest/expectations.json",
+               expectations(d, json.loads(cases)["recipe_cases"]))
     if CHECK and STALE:
         print("stale generated files (now regenerated; commit them):", ", ".join(STALE))
         sys.exit(1)

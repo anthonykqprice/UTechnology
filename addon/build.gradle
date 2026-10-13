@@ -82,6 +82,7 @@ dependencies {
     modRuntimeOnly("maven.modrinth:architectury-api:${architectury_modrinth}") { transitive = false }
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+    testImplementation 'com.google.code.gson:gson:2.10.1' // same version Minecraft 1.20.1 ships
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 

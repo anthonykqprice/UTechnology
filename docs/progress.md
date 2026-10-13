@@ -9,7 +9,7 @@ language. If a session restarts, resume from "Current state".
 - Phase 2 (data pipeline and validator): done. Reviewed; the review's findings are fixed (see "Phase 2
   review" below). Committed on its own so CI checks it.
 - Phase 3 (items and single-block machines): done. Reviewed; fixes applied.
-- Phase 4 (upgradeable multiblocks): in progress.
+- Phase 4 (upgradeable multiblocks): built; 187 GameTests and the JUnit bonus tests green locally; under review.
 - Branch: `claude/gifted-hawking-pmc94i` (one branch for all five phases, one PR at the end).
 
 ## How to run things (from the repository root)
@@ -156,3 +156,53 @@ segments nearly useless at the frame's tier. Anthony's answer: **parallels don't
 A machine runs all its parallels at one recipe's EU/t; overclocking is judged on one recipe against the
 frame voltage; only inputs and output space limit parallels. Recorded as decision `free-parallels` in
 `design/multiblocks.yaml`; the simulator now counts energy the same way (energy per craft ÷ parallels).
+
+### Phase 4: what was built
+- **One base class**, `UpgradeableMultiblockMachine`, holds everything from the design's framework: the
+  structure (front aisle, 1 to 32 segments with the machine's core block, end aisle with frame-box corners),
+  hatch limits, frame detection (every casing and frame box must be the same frame), voltage capped at the
+  frame, counted segments = min(built, cap), modules in controller slots, the specialization lock, retrofit
+  with kits, and the recipe filters. The four machines are four short definitions in `UTMultiblocks`.
+- **Data, not code**: frames, caps, slots, module effects, hatch limits and filters are read from the pack's
+  generated data (`UpgradeData`, reloaded by `/reload`). Only a machine's recipe type and core block are
+  fixed in Java (they must exist when the game registers machines); a GameTest checks they agree with the
+  design.
+- **Bonuses are computed when the structure forms, a module changes or the data reloads**, then cached
+  (`BonusCalculator`, plain Java). Per recipe, the machine only checks the filter and lock and lets GTM count
+  how many parallels the inputs allow.
+- **Free parallels** (Anthony's answer): the parallel step scales items and fluids but not EU/t, and GTM's
+  input-only parallel count is used (`getParallelAmountWithoutEU`). Then module effects, then GTM's normal
+  overclocking. Order: segments, modules, overclocking, as designed.
+- **Batch bus upkeep**: lubricant is added to the recipe as an input, 10 mB per parallel.
+- **Modules**: three slots in the controller screen (a "Modules" side tab). They can also be installed by
+  right-clicking the controller with a module (this checks the frame's slot count, unlock tier and one of
+  each) and removed by sneak-right-clicking with an empty hand. A module the frame can't use (for example
+  after a downgrade) stays in its slot but is shown as "not working" and has no effect, as in the simulator.
+- **Retrofit**: right-click the formed controller holding kits of another frame. It needs one kit per 8
+  casings and frame boxes (rounded up), converts them all at once, and gives the old ones back. Works up and
+  down. In creative mode no kits are used up.
+- **Spike lessons applied**: the segment count is read under a lock on GTM's shared pattern and saved with
+  the machine; the end aisle's corners are frame boxes, so GTM's limited-hatch bug can't trigger (tested at
+  every length 1 to 32); `alwaysTryModifyRecipe` is on.
+
+### Phase 4: what the GameTests found, and what changed
+- **The simulator didn't match GTM's overclocking** in two places: GTM gives ULV recipes (like wire, 7 EU/t)
+  one overclock fewer, and it truncates EU/t and ticks to whole numbers after each modifier (so the efficiency
+  coil turns 16 EU/t into 9, not 9.6). The simulator now computes recipe runs exactly as GTM does, and the
+  in-game tests compare exact ticks and EU/t. This changes some simulator estimates slightly (ULV recipes in
+  LV machines are now slower in the estimate, as they are in game).
+- **Batch bus and AE2** (a gameplay consequence worth knowing): with a batch bus, every recipe also takes
+  lubricant from a fluid hatch, and in GTM a distinct bus never sees fluid hatches. So a batch-bus machine
+  must be fed through colour groups (bus and hatch dyed alike), and a machine has at most 2 fluid hatches:
+  at most 2 input groups, or 1 for recipes that already use a fluid (conveyors need rubber and lubricant).
+  The validator reports this per machine. It may be worth revisiting the batch bus's upkeep in the design.
+
+### Phase 4: numbers
+- Structure check time (one full check, the work GTM does on every block change in a formed structure),
+  measured in the GameTest server while ~186 other tests ran: **16 segments: about 63 µs; 32 segments:
+  about 104 µs** (medians; spike: 37.5 µs at 8). Even at 32 segments that is 0.2% of a 50 ms tick, and checks
+  only run when blocks in the structure change.
+- GameTests: 187 (every frame at lengths 1-16, 17 and 32; hatches in the end aisle at every length 1-32;
+  mixed frames; breaking and rebuilding; module slot rules; retrofit up and down; recipe filters; the lock;
+  saving; registration vs design; and the simulator's 75 recipe cases run in game).
+- JUnit: the bonus calculator matches all 1,632 simulator cases and the 75 recipe cases.

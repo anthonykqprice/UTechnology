@@ -208,6 +208,17 @@ def check_isolation(d, rep, recipes):
         if nfluid > max_fluid:
             rep.error(f"{key}: its fluid recipes need {nfluid} colour groups, each with its own fluid hatch; a machine "
                       f"has at most {max_fluid} fluid input hatches")
+        # with an upkeep module (batch bus), every recipe also takes that fluid, so every group needs a fluid hatch
+        upkeep = [k for k, m in d.framework["module_definitions"].items() if m.get("upkeep")]
+        if upkeep and rs:
+            with_upkeep = [dict(r, fluid_in=dict(r.get("fluid_in", {}), **{f: 1 for k in upkeep
+                                                   for f in d.framework["module_definitions"][k]["upkeep"]})) for r in rs]
+            ug = isolation_groups(with_upkeep, lambda r: top)
+            two_fluid = any(len(r.get("fluid_in", {})) >= 1 for r in rs)
+            rep.warn(f"{key}: with a batch bus every recipe also needs lubricant, and a distinct bus can't see fluid "
+                     f"hatches, so all of its recipes must be fed through colour groups: {len(ug)} groups needed, at most "
+                     f"{max_fluid} fluid hatches" + (" (and its recipes that already use a fluid need both hatches in one "
+                     "group)" if two_fluid else ""))
         start = isolation_groups(rs, lambda r: lowest_machine_tier(d, r))
         rows.append({"machine": key, "best": best, "start": start, "top": TIERS[top]})
         if len(start) > max_buses:

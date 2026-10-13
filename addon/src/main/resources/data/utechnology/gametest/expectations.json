@@ -922,5 +922,1189 @@
    "eut": 120,
    "id": "utechnology:assembler/build/module_batch_bus"
   }
- ]
+ ],
+ "recipe_cases": [
+  {
+   "frame": "steel",
+   "segments": 3,
+   "modules": [],
+   "recipe": "wire_copper_single",
+   "recipe_eut": 7,
+   "recipe_ticks": 63,
+   "expect": {
+    "overclocks": 0,
+    "ticks": 63,
+    "eut": 7,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "steel",
+   "segments": 3,
+   "modules": [],
+   "recipe": "rod_steel",
+   "recipe_eut": 16,
+   "recipe_ticks": 112,
+   "expect": {
+    "overclocks": 0,
+    "ticks": 112,
+    "eut": 16,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "steel",
+   "segments": 3,
+   "modules": [],
+   "recipe": "motor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 0,
+    "ticks": 100,
+    "eut": 30,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "steel",
+   "segments": 3,
+   "modules": [],
+   "recipe": "motor_hv",
+   "recipe_eut": 120,
+   "recipe_ticks": 200,
+   "expect": null
+  },
+  {
+   "frame": "steel",
+   "segments": 3,
+   "modules": [],
+   "recipe": "conveyor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 0,
+    "ticks": 100,
+    "eut": 30,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "steel",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil"
+   ],
+   "recipe": "wire_copper_single",
+   "recipe_eut": 7,
+   "recipe_ticks": 63,
+   "expect": {
+    "overclocks": 0,
+    "ticks": 63,
+    "eut": 7,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "steel",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil"
+   ],
+   "recipe": "rod_steel",
+   "recipe_eut": 16,
+   "recipe_ticks": 112,
+   "expect": {
+    "overclocks": 0,
+    "ticks": 112,
+    "eut": 16,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "steel",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil"
+   ],
+   "recipe": "motor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 0,
+    "ticks": 100,
+    "eut": 30,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "steel",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil"
+   ],
+   "recipe": "motor_hv",
+   "recipe_eut": 120,
+   "recipe_ticks": 200,
+   "expect": null
+  },
+  {
+   "frame": "steel",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil"
+   ],
+   "recipe": "conveyor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 0,
+    "ticks": 100,
+    "eut": 30,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "steel",
+   "segments": 3,
+   "modules": [
+    "specialization_lock"
+   ],
+   "recipe": "wire_copper_single",
+   "recipe_eut": 7,
+   "recipe_ticks": 63,
+   "expect": {
+    "overclocks": 0,
+    "ticks": 31,
+    "eut": 7,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "steel",
+   "segments": 3,
+   "modules": [
+    "specialization_lock"
+   ],
+   "recipe": "rod_steel",
+   "recipe_eut": 16,
+   "recipe_ticks": 112,
+   "expect": {
+    "overclocks": 0,
+    "ticks": 56,
+    "eut": 16,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "steel",
+   "segments": 3,
+   "modules": [
+    "specialization_lock"
+   ],
+   "recipe": "motor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 0,
+    "ticks": 50,
+    "eut": 30,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "steel",
+   "segments": 3,
+   "modules": [
+    "specialization_lock"
+   ],
+   "recipe": "motor_hv",
+   "recipe_eut": 120,
+   "recipe_ticks": 200,
+   "expect": null
+  },
+  {
+   "frame": "steel",
+   "segments": 3,
+   "modules": [
+    "specialization_lock"
+   ],
+   "recipe": "conveyor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 0,
+    "ticks": 50,
+    "eut": 30,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "steel",
+   "segments": 3,
+   "modules": [
+    "batch_bus"
+   ],
+   "recipe": "wire_copper_single",
+   "recipe_eut": 7,
+   "recipe_ticks": 63,
+   "expect": {
+    "overclocks": 0,
+    "ticks": 63,
+    "eut": 7,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "steel",
+   "segments": 3,
+   "modules": [
+    "batch_bus"
+   ],
+   "recipe": "rod_steel",
+   "recipe_eut": 16,
+   "recipe_ticks": 112,
+   "expect": {
+    "overclocks": 0,
+    "ticks": 112,
+    "eut": 16,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "steel",
+   "segments": 3,
+   "modules": [
+    "batch_bus"
+   ],
+   "recipe": "motor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 0,
+    "ticks": 100,
+    "eut": 30,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "steel",
+   "segments": 3,
+   "modules": [
+    "batch_bus"
+   ],
+   "recipe": "motor_hv",
+   "recipe_eut": 120,
+   "recipe_ticks": 200,
+   "expect": null
+  },
+  {
+   "frame": "steel",
+   "segments": 3,
+   "modules": [
+    "batch_bus"
+   ],
+   "recipe": "conveyor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 0,
+    "ticks": 100,
+    "eut": 30,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "steel",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil",
+    "batch_bus"
+   ],
+   "recipe": "wire_copper_single",
+   "recipe_eut": 7,
+   "recipe_ticks": 63,
+   "expect": {
+    "overclocks": 0,
+    "ticks": 63,
+    "eut": 7,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "steel",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil",
+    "batch_bus"
+   ],
+   "recipe": "rod_steel",
+   "recipe_eut": 16,
+   "recipe_ticks": 112,
+   "expect": {
+    "overclocks": 0,
+    "ticks": 112,
+    "eut": 16,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "steel",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil",
+    "batch_bus"
+   ],
+   "recipe": "motor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 0,
+    "ticks": 100,
+    "eut": 30,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "steel",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil",
+    "batch_bus"
+   ],
+   "recipe": "motor_hv",
+   "recipe_eut": 120,
+   "recipe_ticks": 200,
+   "expect": null
+  },
+  {
+   "frame": "steel",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil",
+    "batch_bus"
+   ],
+   "recipe": "conveyor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 0,
+    "ticks": 100,
+    "eut": 30,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "aluminium",
+   "segments": 3,
+   "modules": [],
+   "recipe": "wire_copper_single",
+   "recipe_eut": 7,
+   "recipe_ticks": 63,
+   "expect": {
+    "overclocks": 1,
+    "ticks": 31,
+    "eut": 28,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "aluminium",
+   "segments": 3,
+   "modules": [],
+   "recipe": "rod_steel",
+   "recipe_eut": 16,
+   "recipe_ticks": 112,
+   "expect": {
+    "overclocks": 1,
+    "ticks": 56,
+    "eut": 64,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "aluminium",
+   "segments": 3,
+   "modules": [],
+   "recipe": "motor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 1,
+    "ticks": 50,
+    "eut": 120,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "aluminium",
+   "segments": 3,
+   "modules": [],
+   "recipe": "motor_hv",
+   "recipe_eut": 120,
+   "recipe_ticks": 200,
+   "expect": {
+    "overclocks": 0,
+    "ticks": 200,
+    "eut": 120,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "aluminium",
+   "segments": 3,
+   "modules": [],
+   "recipe": "conveyor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 1,
+    "ticks": 50,
+    "eut": 120,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "aluminium",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil"
+   ],
+   "recipe": "wire_copper_single",
+   "recipe_eut": 7,
+   "recipe_ticks": 63,
+   "expect": {
+    "overclocks": 1,
+    "ticks": 39,
+    "eut": 16,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "aluminium",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil"
+   ],
+   "recipe": "rod_steel",
+   "recipe_eut": 16,
+   "recipe_ticks": 112,
+   "expect": {
+    "overclocks": 1,
+    "ticks": 70,
+    "eut": 36,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "aluminium",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil"
+   ],
+   "recipe": "motor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 1,
+    "ticks": 62,
+    "eut": 72,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "aluminium",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil"
+   ],
+   "recipe": "motor_hv",
+   "recipe_eut": 120,
+   "recipe_ticks": 200,
+   "expect": {
+    "overclocks": 0,
+    "ticks": 250,
+    "eut": 72,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "aluminium",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil"
+   ],
+   "recipe": "conveyor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 1,
+    "ticks": 62,
+    "eut": 72,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "aluminium",
+   "segments": 3,
+   "modules": [
+    "specialization_lock"
+   ],
+   "recipe": "wire_copper_single",
+   "recipe_eut": 7,
+   "recipe_ticks": 63,
+   "expect": {
+    "overclocks": 1,
+    "ticks": 15,
+    "eut": 28,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "aluminium",
+   "segments": 3,
+   "modules": [
+    "specialization_lock"
+   ],
+   "recipe": "rod_steel",
+   "recipe_eut": 16,
+   "recipe_ticks": 112,
+   "expect": {
+    "overclocks": 1,
+    "ticks": 28,
+    "eut": 64,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "aluminium",
+   "segments": 3,
+   "modules": [
+    "specialization_lock"
+   ],
+   "recipe": "motor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 1,
+    "ticks": 25,
+    "eut": 120,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "aluminium",
+   "segments": 3,
+   "modules": [
+    "specialization_lock"
+   ],
+   "recipe": "motor_hv",
+   "recipe_eut": 120,
+   "recipe_ticks": 200,
+   "expect": {
+    "overclocks": 0,
+    "ticks": 100,
+    "eut": 120,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "aluminium",
+   "segments": 3,
+   "modules": [
+    "specialization_lock"
+   ],
+   "recipe": "conveyor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 1,
+    "ticks": 25,
+    "eut": 120,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "aluminium",
+   "segments": 3,
+   "modules": [
+    "batch_bus"
+   ],
+   "recipe": "wire_copper_single",
+   "recipe_eut": 7,
+   "recipe_ticks": 63,
+   "expect": {
+    "overclocks": 1,
+    "ticks": 31,
+    "eut": 28,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "aluminium",
+   "segments": 3,
+   "modules": [
+    "batch_bus"
+   ],
+   "recipe": "rod_steel",
+   "recipe_eut": 16,
+   "recipe_ticks": 112,
+   "expect": {
+    "overclocks": 1,
+    "ticks": 56,
+    "eut": 64,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "aluminium",
+   "segments": 3,
+   "modules": [
+    "batch_bus"
+   ],
+   "recipe": "motor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 1,
+    "ticks": 50,
+    "eut": 120,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "aluminium",
+   "segments": 3,
+   "modules": [
+    "batch_bus"
+   ],
+   "recipe": "motor_hv",
+   "recipe_eut": 120,
+   "recipe_ticks": 200,
+   "expect": {
+    "overclocks": 0,
+    "ticks": 200,
+    "eut": 120,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "aluminium",
+   "segments": 3,
+   "modules": [
+    "batch_bus"
+   ],
+   "recipe": "conveyor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 1,
+    "ticks": 50,
+    "eut": 120,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "aluminium",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil",
+    "batch_bus"
+   ],
+   "recipe": "wire_copper_single",
+   "recipe_eut": 7,
+   "recipe_ticks": 63,
+   "expect": {
+    "overclocks": 1,
+    "ticks": 39,
+    "eut": 16,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "aluminium",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil",
+    "batch_bus"
+   ],
+   "recipe": "rod_steel",
+   "recipe_eut": 16,
+   "recipe_ticks": 112,
+   "expect": {
+    "overclocks": 1,
+    "ticks": 70,
+    "eut": 36,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "aluminium",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil",
+    "batch_bus"
+   ],
+   "recipe": "motor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 1,
+    "ticks": 62,
+    "eut": 72,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "aluminium",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil",
+    "batch_bus"
+   ],
+   "recipe": "motor_hv",
+   "recipe_eut": 120,
+   "recipe_ticks": 200,
+   "expect": {
+    "overclocks": 0,
+    "ticks": 250,
+    "eut": 72,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "aluminium",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil",
+    "batch_bus"
+   ],
+   "recipe": "conveyor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 1,
+    "ticks": 62,
+    "eut": 72,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "stainless_steel",
+   "segments": 3,
+   "modules": [],
+   "recipe": "wire_copper_single",
+   "recipe_eut": 7,
+   "recipe_ticks": 63,
+   "expect": {
+    "overclocks": 2,
+    "ticks": 15,
+    "eut": 112,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "stainless_steel",
+   "segments": 3,
+   "modules": [],
+   "recipe": "rod_steel",
+   "recipe_eut": 16,
+   "recipe_ticks": 112,
+   "expect": {
+    "overclocks": 2,
+    "ticks": 28,
+    "eut": 256,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "stainless_steel",
+   "segments": 3,
+   "modules": [],
+   "recipe": "motor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 2,
+    "ticks": 25,
+    "eut": 480,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "stainless_steel",
+   "segments": 3,
+   "modules": [],
+   "recipe": "motor_hv",
+   "recipe_eut": 120,
+   "recipe_ticks": 200,
+   "expect": {
+    "overclocks": 1,
+    "ticks": 100,
+    "eut": 480,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "stainless_steel",
+   "segments": 3,
+   "modules": [],
+   "recipe": "conveyor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 2,
+    "ticks": 25,
+    "eut": 480,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "stainless_steel",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil"
+   ],
+   "recipe": "wire_copper_single",
+   "recipe_eut": 7,
+   "recipe_ticks": 63,
+   "expect": {
+    "overclocks": 2,
+    "ticks": 19,
+    "eut": 64,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "stainless_steel",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil"
+   ],
+   "recipe": "rod_steel",
+   "recipe_eut": 16,
+   "recipe_ticks": 112,
+   "expect": {
+    "overclocks": 2,
+    "ticks": 35,
+    "eut": 144,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "stainless_steel",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil"
+   ],
+   "recipe": "motor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 2,
+    "ticks": 31,
+    "eut": 288,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "stainless_steel",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil"
+   ],
+   "recipe": "motor_hv",
+   "recipe_eut": 120,
+   "recipe_ticks": 200,
+   "expect": {
+    "overclocks": 1,
+    "ticks": 125,
+    "eut": 288,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "stainless_steel",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil"
+   ],
+   "recipe": "conveyor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 2,
+    "ticks": 31,
+    "eut": 288,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "stainless_steel",
+   "segments": 3,
+   "modules": [
+    "specialization_lock"
+   ],
+   "recipe": "wire_copper_single",
+   "recipe_eut": 7,
+   "recipe_ticks": 63,
+   "expect": {
+    "overclocks": 2,
+    "ticks": 7,
+    "eut": 112,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "stainless_steel",
+   "segments": 3,
+   "modules": [
+    "specialization_lock"
+   ],
+   "recipe": "rod_steel",
+   "recipe_eut": 16,
+   "recipe_ticks": 112,
+   "expect": {
+    "overclocks": 2,
+    "ticks": 14,
+    "eut": 256,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "stainless_steel",
+   "segments": 3,
+   "modules": [
+    "specialization_lock"
+   ],
+   "recipe": "motor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 2,
+    "ticks": 12,
+    "eut": 480,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "stainless_steel",
+   "segments": 3,
+   "modules": [
+    "specialization_lock"
+   ],
+   "recipe": "motor_hv",
+   "recipe_eut": 120,
+   "recipe_ticks": 200,
+   "expect": {
+    "overclocks": 1,
+    "ticks": 50,
+    "eut": 480,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "stainless_steel",
+   "segments": 3,
+   "modules": [
+    "specialization_lock"
+   ],
+   "recipe": "conveyor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 2,
+    "ticks": 12,
+    "eut": 480,
+    "parallels": 3
+   }
+  },
+  {
+   "frame": "stainless_steel",
+   "segments": 3,
+   "modules": [
+    "batch_bus"
+   ],
+   "recipe": "wire_copper_single",
+   "recipe_eut": 7,
+   "recipe_ticks": 63,
+   "expect": {
+    "overclocks": 2,
+    "ticks": 15,
+    "eut": 112,
+    "parallels": 6
+   }
+  },
+  {
+   "frame": "stainless_steel",
+   "segments": 3,
+   "modules": [
+    "batch_bus"
+   ],
+   "recipe": "rod_steel",
+   "recipe_eut": 16,
+   "recipe_ticks": 112,
+   "expect": {
+    "overclocks": 2,
+    "ticks": 28,
+    "eut": 256,
+    "parallels": 6
+   }
+  },
+  {
+   "frame": "stainless_steel",
+   "segments": 3,
+   "modules": [
+    "batch_bus"
+   ],
+   "recipe": "motor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 2,
+    "ticks": 25,
+    "eut": 480,
+    "parallels": 6
+   }
+  },
+  {
+   "frame": "stainless_steel",
+   "segments": 3,
+   "modules": [
+    "batch_bus"
+   ],
+   "recipe": "motor_hv",
+   "recipe_eut": 120,
+   "recipe_ticks": 200,
+   "expect": {
+    "overclocks": 1,
+    "ticks": 100,
+    "eut": 480,
+    "parallels": 6
+   }
+  },
+  {
+   "frame": "stainless_steel",
+   "segments": 3,
+   "modules": [
+    "batch_bus"
+   ],
+   "recipe": "conveyor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 2,
+    "ticks": 25,
+    "eut": 480,
+    "parallels": 6
+   }
+  },
+  {
+   "frame": "stainless_steel",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil",
+    "batch_bus"
+   ],
+   "recipe": "wire_copper_single",
+   "recipe_eut": 7,
+   "recipe_ticks": 63,
+   "expect": {
+    "overclocks": 2,
+    "ticks": 19,
+    "eut": 64,
+    "parallels": 6
+   }
+  },
+  {
+   "frame": "stainless_steel",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil",
+    "batch_bus"
+   ],
+   "recipe": "rod_steel",
+   "recipe_eut": 16,
+   "recipe_ticks": 112,
+   "expect": {
+    "overclocks": 2,
+    "ticks": 35,
+    "eut": 144,
+    "parallels": 6
+   }
+  },
+  {
+   "frame": "stainless_steel",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil",
+    "batch_bus"
+   ],
+   "recipe": "motor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 2,
+    "ticks": 31,
+    "eut": 288,
+    "parallels": 6
+   }
+  },
+  {
+   "frame": "stainless_steel",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil",
+    "batch_bus"
+   ],
+   "recipe": "motor_hv",
+   "recipe_eut": 120,
+   "recipe_ticks": 200,
+   "expect": {
+    "overclocks": 1,
+    "ticks": 125,
+    "eut": 288,
+    "parallels": 6
+   }
+  },
+  {
+   "frame": "stainless_steel",
+   "segments": 3,
+   "modules": [
+    "efficiency_coil",
+    "batch_bus"
+   ],
+   "recipe": "conveyor_lv",
+   "recipe_eut": 30,
+   "recipe_ticks": 100,
+   "expect": {
+    "overclocks": 2,
+    "ticks": 31,
+    "eut": 288,
+    "parallels": 6
+   }
+  }
+ ],
+ "multiblocks": {
+  "component_assembler": {
+   "recipe_type": "gtceu:assembler",
+   "core": "utechnology:assembly_arm_housing",
+   "controller": "utechnology:component_assembler"
+  },
+  "assembly_hall": {
+   "recipe_type": "gtceu:assembler",
+   "core": "utechnology:assembly_bench_unit",
+   "controller": "utechnology:assembly_hall"
+  },
+  "wire_drawing_line": {
+   "recipe_type": "gtceu:wiremill",
+   "core": "utechnology:drawing_die_unit",
+   "controller": "utechnology:wire_drawing_line"
+  },
+  "turning_line": {
+   "recipe_type": "gtceu:lathe",
+   "core": "utechnology:spindle_unit",
+   "controller": "utechnology:turning_line"
+  }
+ }
 }

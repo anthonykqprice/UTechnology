@@ -16,9 +16,12 @@ assert.strictEqual(e.byproducts.dust_small_steel, 44);
 assert.strictEqual(e.runs.wire_copper_single, Math.ceil((24 + 6) / 2));
 assert.strictEqual(e.supplied.rubber_fluid, (12 + 6 + 2) * 144); // tin, copper, silver cables
 
-// 2. ULV recipe (copper wire, 7 EU/t) in an LV wiremill: one overclock
+// 2. ULV recipe (copper wire, 7 EU/t) in an LV wiremill: GTM gives ULV recipes one overclock fewer, so none here;
+//    an MV wiremill overclocks it once (63 ticks -> 31, truncated)
 let r = simulate(data, [{ type: "wiremill", tier: "LV", count: 1 }], [{ item: "wire_copper_single", qty: 2 }], S);
-near(r.total, 3.15 / 2, "ulv oc time"); near(r.energy, 28 * (3.15 / 2) * 20, "ulv oc energy");
+near(r.total, 3.15, "ulv no oc time"); near(r.energy, 7 * 3.15 * 20, "ulv no oc energy");
+r = simulate(data, [{ type: "wiremill", tier: "MV", count: 1 }], [{ item: "wire_copper_single", qty: 2 }], S);
+near(r.total, 31 / 20, "ulv one oc time"); near(r.energy, 28 * 31, "ulv one oc energy");
 
 // 3. component assembler: aluminium frame caps at 8; 10 segments built counts 8
 let G = resolveGroup(data, { type: "component_assembler", frame: "aluminium", segments: 10, modules: [], count: 1 });
@@ -39,8 +42,9 @@ assert(r.errors.some(x => x.recipe === "motor_lv")); assert(!r.errors.some(x => 
 G = resolveGroup(data, { type: "turning_line", frame: "steel", segments: 2, modules: ["efficiency_coil"], count: 1 });
 assert(G.warnings.some(w => /needs at least a MV frame/.test(w)));
 r = simulate(data, [{ type: "turning_line", frame: "aluminium", segments: 1, modules: ["efficiency_coil"], count: 1 }], [{ item: "rod_steel", qty: 1 }], S);
-// lathe 16 EU/t is LV; MV machine -> 1 OC: duration 5.6*1.25/2, EU/t 16*0.6*4
-near(r.total, 5.6 * 1.25 / 2, "eff time"); near(r.energy, 16 * 0.6 * 4 * (5.6 * 1.25 / 2) * 20, "eff energy");
+// lathe 16 EU/t is LV; with the coil 9 EU/t (16 x 0.6 = 9.6, truncated as GTM does) and 140 ticks;
+// MV machine -> 1 OC: 70 ticks at 36 EU/t
+near(r.total, 70 / 20, "eff time"); near(r.energy, 36 * 70, "eff energy");
 
 // 7. batch bus doubles parallels with upkeep
 G = resolveGroup(data, { type: "component_assembler", frame: "stainless_steel", segments: 16, modules: ["batch_bus"], count: 1 });

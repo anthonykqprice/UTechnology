@@ -39,10 +39,7 @@ public class DesignTests {
      * Our content that later prototype phases add. These exact IDs (and recipes using them) are skipped until
      * then. Empty once every phase is built.
      */
-    static final List<String> NOT_YET_BUILT = List.of(
-            // multiblock controllers: phase 4
-            "utechnology:component_assembler", "utechnology:assembly_hall", "utechnology:wire_drawing_line",
-            "utechnology:turning_line");
+    static final List<String> NOT_YET_BUILT = List.of();
 
     static boolean pending(String id) {
         String bare = id.startsWith("#") ? id.substring(1) : id.startsWith("fluid:") ? id.substring(6) : id;
