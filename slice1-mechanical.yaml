@@ -1,0 +1,408 @@
+# Slice 1: mechanical components, LV to HV
+# Source of truth for this slice. The factory simulator reads this file, and
+# KubeJS scripts will later be generated from it.
+#
+# status on every recipe:
+#   stock   = unchanged from GregTech CEu Modern 1.20.1 (checked against
+#             ComponentRecipes.java, branch 1.20.1, commit 8cd78491)
+#   changed = stock recipe we modify
+#   new     = recipe added by this pack
+#
+# Units: duration in seconds, eut in EU/t. 1 s = 20 ticks.
+# GT voltages (EU/t, one amp): LV 32, MV 128, HV 512. Recipe EU/t uses GT's
+# "VA" values: LV 30, MV 120, HV 480.
+
+meta:
+  slice: mechanical-lv-hv
+  version: 0.1-draft
+  overclock: standard        # 4x EU/t for 2x speed per tier above the recipe
+  rules:
+    - Motors are the only component that recurses. Pistons, conveyors and robot
+      arms keep their stock recipes and inherit the recursion through the motors
+      they contain.
+    - Bootstrap rule. A tier-N component must be makeable at tier N-1 voltage,
+      with machines available at tier N-1. Otherwise the first tier-N machine
+      could never be built.
+    - Each tier introduces one new machine, and that machine is needed for the
+      next tier's components.
+
+# ---------------------------------------------------------------------------
+# Items
+# kind: supplied   = made by stock GT chains we are not modelling in this slice;
+#                    raw = rough ingot-equivalent cost so the simulator can
+#                    count materials (approximate, tune later)
+# kind: part       = intermediate item added by this pack
+# kind: component  = the components this slice is about
+# ---------------------------------------------------------------------------
+items:
+  # supplied, stock GT intermediates
+  cable_tin_single:        { kind: supplied, raw: { tin: 0.5, rubber: 1 } }
+  cable_copper_single:     { kind: supplied, raw: { copper: 0.5, rubber: 1 } }
+  cable_gold_single:       { kind: supplied, raw: { gold: 0.5, rubber: 1 } }
+  cable_silver_double:     { kind: supplied, raw: { silver: 1, rubber: 1 } }
+  wire_copper_single:      { kind: supplied, raw: { copper: 0.5 } }
+  wire_cupronickel_double: { kind: supplied, raw: { cupronickel: 1 } }
+  wire_electrum_double:    { kind: supplied, raw: { electrum: 1 } }
+  rod_steel:               { kind: supplied, raw: { steel: 0.5 } }
+  rod_aluminium:           { kind: supplied, raw: { aluminium: 0.5 } }
+  rod_stainless_steel:     { kind: supplied, raw: { stainless_steel: 0.5 } }
+  rod_magnetic_steel:      { kind: supplied, raw: { steel: 0.5 } }
+  plate_steel:             { kind: supplied, raw: { steel: 1 } }
+  plate_aluminium:         { kind: supplied, raw: { aluminium: 1 } }
+  plate_stainless_steel:   { kind: supplied, raw: { stainless_steel: 1 } }
+  gear_small_steel:        { kind: supplied, raw: { steel: 1 } }
+  gear_small_aluminium:    { kind: supplied, raw: { aluminium: 1 } }
+  gear_small_stainless:    { kind: supplied, raw: { stainless_steel: 1 } }
+  ring_stainless_steel:    { kind: supplied, raw: { stainless_steel: 0.25 } }
+  circuit_lv:              { kind: supplied, note: circuit chain not modelled yet }
+  circuit_mv:              { kind: supplied, note: circuit chain not modelled yet }
+  circuit_hv:              { kind: supplied, note: circuit chain not modelled yet }
+  frame_steel:             { kind: supplied, raw: { steel: 2 } }
+  frame_aluminium:         { kind: supplied, raw: { aluminium: 2 } }
+  frame_stainless_steel:   { kind: supplied, raw: { stainless_steel: 2 } }
+  hull_lv:                 { kind: supplied, raw: { steel: 8, tin: 1, rubber: 2 } }
+  hull_mv:                 { kind: supplied, raw: { aluminium: 8, copper: 1, rubber: 2 } }
+  hull_hv:                 { kind: supplied, raw: { stainless_steel: 8, gold: 1, rubber: 2 } }
+
+  # fluids (amounts in mB)
+  rubber_fluid:            { kind: supplied, fluid: true }
+  lubricant:               { kind: supplied, fluid: true, note: stock GT fluid }
+
+  # new parts
+  stator_coil_mv:          { kind: part, tier: MV, name: MV Stator Coil }
+  stator_coil_hv:          { kind: part, tier: HV, name: HV Stator Coil }
+  bearing_hv:              { kind: part, tier: HV, name: Precision Bearing }
+
+  # components
+  motor_lv:                { kind: component, tier: LV, family: wound }
+  motor_mv:                { kind: component, tier: MV, family: wound }
+  motor_hv:                { kind: component, tier: HV, family: wound }
+  piston_lv:               { kind: component, tier: LV }
+  piston_mv:               { kind: component, tier: MV }
+  piston_hv:               { kind: component, tier: HV }
+  conveyor_lv:             { kind: component, tier: LV }
+  conveyor_mv:             { kind: component, tier: MV }
+  conveyor_hv:             { kind: component, tier: HV }
+  robot_arm_lv:            { kind: component, tier: LV }
+  robot_arm_mv:            { kind: component, tier: MV }
+  robot_arm_hv:            { kind: component, tier: HV }
+
+# ---------------------------------------------------------------------------
+# Machines
+# ---------------------------------------------------------------------------
+machines:
+  assembler:
+    status: stock
+    kind: single
+    tiers: [LV, MV, HV]
+    runs: [assembler]
+
+  coil_winder:
+    status: new
+    kind: single
+    tiers: [LV, MV, HV]
+    unlocked_at: LV
+    runs: [coil_winder]
+    purpose: Winds stator coils. Needed for MV motors (LV voltage) and HV motors (MV voltage).
+
+  bearing_press:
+    status: new
+    kind: single
+    tiers: [MV, HV]
+    unlocked_at: MV
+    runs: [bearing_press]
+    purpose: Presses precision bearings with lubricant. Needed for HV motors.
+
+  component_assembler:
+    status: new
+    kind: multiblock
+    unlocked_at: LV
+    runs: [assembler]            # only recipes tagged component: true
+    purpose: >
+      The first upgradeable multiblock. Runs component recipes in parallel.
+      It is built once at LV and upgraded in place through HV and beyond.
+    frames:                      # casing material sets max voltage, segments and module slots
+      steel:           { tier: LV, max_voltage: LV, max_segments: 2, module_slots: 1 }
+      aluminium:       { tier: MV, max_voltage: MV, max_segments: 4, module_slots: 2 }
+      stainless_steel: { tier: HV, max_voltage: HV, max_segments: 8, module_slots: 3 }
+    segments:
+      parallels_per_segment: 1   # a 4-segment machine runs 4 recipes at once
+      casings_per_segment: 8
+    upgrade_in_place: Replacing casings converts the frame. The controller, hatches and modules stay.
+    modules:
+      specialization_lock:
+        unlocked_at: LV
+        effect: Locks the machine to the first recipe it runs. That recipe runs 2x faster.
+        speed: 2.0
+      efficiency_coil:
+        unlocked_at: MV
+        effect: 25% less energy per craft, 20% slower.
+        energy: 0.75
+        speed: 0.8
+      batch_bus:
+        unlocked_at: HV
+        effect: Doubles parallels. Each batch consumes lubricant.
+        parallels: 2.0
+        upkeep: { lubricant: 10 }   # mB per recipe run
+
+# ---------------------------------------------------------------------------
+# Recipes
+# ---------------------------------------------------------------------------
+recipes:
+
+  # ---- motors (the recursive chain) ----
+  - id: motor_lv
+    status: stock
+    machine: assembler
+    component: true
+    eut: 30
+    duration: 5
+    in:  { cable_tin_single: 2, rod_steel: 2, rod_magnetic_steel: 1, wire_copper_single: 4 }
+    out: { motor_lv: 1 }
+
+  - id: stator_coil_mv
+    status: new
+    machine: coil_winder
+    eut: 30                      # LV voltage, per the bootstrap rule
+    duration: 10
+    in:  { rod_magnetic_steel: 1, wire_cupronickel_double: 4 }
+    out: { stator_coil_mv: 1 }
+    note: Takes over the wire and magnet that stock puts directly into the MV motor.
+
+  - id: motor_mv
+    status: changed
+    machine: assembler
+    component: true
+    eut: 30
+    duration: 10
+    in:  { motor_lv: 2, stator_coil_mv: 1, rod_aluminium: 2, cable_copper_single: 2 }
+    out: { motor_mv: 1 }
+    stock_was: { in: { cable_copper_single: 2, rod_aluminium: 2, rod_magnetic_steel: 1, wire_cupronickel_double: 4 }, duration: 5 }
+
+  - id: stator_coil_hv
+    status: new
+    machine: coil_winder
+    eut: 120                     # MV voltage
+    duration: 10
+    in:  { rod_magnetic_steel: 1, wire_electrum_double: 4 }
+    out: { stator_coil_hv: 1 }
+
+  - id: bearing_hv
+    status: new
+    machine: bearing_press
+    eut: 120                     # MV voltage
+    duration: 8
+    in:  { ring_stainless_steel: 2, rod_stainless_steel: 1 }
+    fluid_in: { lubricant: 50 }
+    out: { bearing_hv: 2 }
+
+  - id: motor_hv
+    status: changed
+    machine: assembler
+    component: true
+    eut: 120
+    duration: 10
+    in:  { motor_mv: 3, stator_coil_hv: 1, bearing_hv: 2, rod_stainless_steel: 2, cable_silver_double: 2 }
+    out: { motor_hv: 1 }
+    stock_was: { in: { cable_silver_double: 2, rod_stainless_steel: 2, rod_magnetic_steel: 1, wire_electrum_double: 4 }, eut: 30, duration: 5 }
+
+  # ---- pistons (stock) ----
+  - id: piston_lv
+    status: stock
+    machine: assembler
+    component: true
+    eut: 30
+    duration: 5
+    in:  { rod_steel: 2, cable_tin_single: 2, plate_steel: 3, gear_small_steel: 1, motor_lv: 1 }
+    out: { piston_lv: 1 }
+
+  - id: piston_mv
+    status: stock
+    machine: assembler
+    component: true
+    eut: 30
+    duration: 5
+    in:  { rod_aluminium: 2, cable_copper_single: 2, plate_aluminium: 3, gear_small_aluminium: 1, motor_mv: 1 }
+    out: { piston_mv: 1 }
+
+  - id: piston_hv
+    status: stock
+    machine: assembler
+    component: true
+    eut: 30
+    duration: 5
+    in:  { rod_stainless_steel: 2, cable_gold_single: 2, plate_stainless_steel: 3, gear_small_stainless: 1, motor_hv: 1 }
+    out: { piston_hv: 1 }
+
+  # ---- conveyors (stock; rubber variant) ----
+  - id: conveyor_lv
+    status: stock
+    machine: assembler
+    component: true
+    eut: 30
+    duration: 5
+    in:  { cable_tin_single: 1, motor_lv: 2 }
+    fluid_in: { rubber_fluid: 864 }
+    out: { conveyor_lv: 1 }
+
+  - id: conveyor_mv
+    status: stock
+    machine: assembler
+    component: true
+    eut: 30
+    duration: 5
+    in:  { cable_copper_single: 1, motor_mv: 2 }
+    fluid_in: { rubber_fluid: 864 }
+    out: { conveyor_mv: 1 }
+
+  - id: conveyor_hv
+    status: stock
+    machine: assembler
+    component: true
+    eut: 30
+    duration: 5
+    in:  { cable_gold_single: 1, motor_hv: 2 }
+    fluid_in: { rubber_fluid: 864 }
+    out: { conveyor_hv: 1 }
+
+  # ---- robot arms (stock) ----
+  - id: robot_arm_lv
+    status: stock
+    machine: assembler
+    component: true
+    eut: 30
+    duration: 5
+    in:  { cable_tin_single: 3, rod_steel: 2, motor_lv: 2, piston_lv: 1, circuit_lv: 1 }
+    out: { robot_arm_lv: 1 }
+
+  - id: robot_arm_mv
+    status: stock
+    machine: assembler
+    component: true
+    eut: 30
+    duration: 5
+    in:  { cable_copper_single: 3, rod_aluminium: 2, motor_mv: 2, piston_mv: 1, circuit_mv: 1 }
+    out: { robot_arm_mv: 1 }
+
+  - id: robot_arm_hv
+    status: stock
+    machine: assembler
+    component: true
+    eut: 30
+    duration: 5
+    in:  { cable_gold_single: 3, rod_stainless_steel: 2, motor_hv: 2, piston_hv: 1, circuit_hv: 1 }
+    out: { robot_arm_hv: 1 }
+
+# ---------------------------------------------------------------------------
+# Machine build recipes (what it costs to build the factory)
+# All new; numbers are first guesses.
+# ---------------------------------------------------------------------------
+builds:
+  - id: coil_winder_lv
+    builds: coil_winder
+    tier: LV
+    in: { hull_lv: 1, motor_lv: 2, wire_copper_single: 4, circuit_lv: 2 }
+
+  - id: bearing_press_mv
+    builds: bearing_press
+    tier: MV
+    in: { hull_mv: 1, piston_mv: 2, motor_mv: 1, circuit_mv: 2 }
+
+  - id: component_assembler_controller
+    builds: component_assembler
+    tier: LV
+    in: { hull_lv: 1, robot_arm_lv: 2, conveyor_lv: 2, circuit_lv: 3 }
+
+  - id: casing_steel
+    builds: casing
+    frame: steel
+    in: { plate_steel: 6, frame_steel: 1 }
+    out: 2
+
+  - id: casing_aluminium
+    builds: casing
+    frame: aluminium
+    in: { plate_aluminium: 6, frame_aluminium: 1 }
+    out: 2
+
+  - id: casing_stainless_steel
+    builds: casing
+    frame: stainless_steel
+    in: { plate_stainless_steel: 6, frame_stainless_steel: 1 }
+    out: 2
+
+  - id: module_specialization_lock
+    builds: specialization_lock
+    tier: LV
+    in: { robot_arm_lv: 1, circuit_lv: 2, plate_steel: 4 }
+
+  - id: module_efficiency_coil
+    builds: efficiency_coil
+    tier: MV
+    in: { stator_coil_mv: 4, circuit_mv: 2, plate_aluminium: 4 }
+
+  - id: module_batch_bus
+    builds: batch_bus
+    tier: HV
+    in: { conveyor_hv: 2, robot_arm_hv: 1, circuit_hv: 2, plate_stainless_steel: 4 }
+
+# ---------------------------------------------------------------------------
+# Decisions
+# ---------------------------------------------------------------------------
+decisions:
+  - id: component-voltage
+    decided: 2026-10-12
+    decision: Component recipes stay one voltage tier below their own tier.
+    why: >-
+      Power. Raising a recipe one voltage tier at the same duration costs 4x the
+      energy per craft, and recursion multiplies that through every component.
+      Early on the blast furnace is already the biggest power sink, so
+      components should not add a second one.
+    alternative_kept_in_reserve: >-
+      GT multiblocks with two or more energy hatches at their highest tier run
+      one tier higher (WorkableElectricMultiblockMachine.getMaxVoltage), so the
+      component assembler could reach a component's own voltage without a
+      bootstrap recipe. Use this as a targeted gate if the simulator shows no
+      reason to upgrade the frame.
+  - id: prototype-start
+    decided: 2026-10-12
+    decision: >-
+      The playable prototype starts at LV in a test world with ingots, rubber and
+      the slice's other supplied materials handed out. No ore processing,
+      skyblock, steam age or quests.
+    why: >-
+      Tests the core loop (recursion, growing multiblocks, research) without
+      building the full early game first.
+  - id: ae2-logistics
+    decided: 2026-10-13
+    decision: >-
+      AE2 is the logistics tool for the whole pack and is in the prototype from LV.
+      Recipes are designed for AE2 autocrafting: within one machine type, no two
+      recipes accept the same set of inputs, and non-consumed inputs (programmed
+      circuits, catalysts) are avoided where possible.
+    why: >-
+      Pattern providers only push inputs and wait for outputs. Autocrafting breaks
+      when a machine can pick a different recipe from the same inputs, or when an
+      input has to stay in the machine.
+  - id: team-research
+    decided: 2026-10-13
+    decision: >-
+      Research belongs to teams (FTB Teams), not players. A solo player is a team
+      of one. Machines get their team through their owner.
+    why: >-
+      Future-proofs multiplayer. Switching from per-player to team research later
+      would change the save format.
+
+# ---------------------------------------------------------------------------
+# Open questions for this slice
+# ---------------------------------------------------------------------------
+open_questions:
+  - >-
+    Recursion counts. MV motor takes 2 LV motors and HV takes 3 MV, so an HV
+    robot arm contains 18 LV motors. Too steep, about right, or too gentle?
+  - >-
+    Do the HV piston and robot arm also need precision bearings, or only motors?
+  - >-
+    What does the HV tier's new machine make for EV components? This is where
+    the magnetic family could start, since stock GT already switches to
+    neodymium magnets at EV.
